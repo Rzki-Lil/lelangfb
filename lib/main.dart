@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
         print(snapshot);
         if (snapshot.connectionState == ConnectionState.active) {
           return GetMaterialApp(
-            title: "Application",
+            title: "aplikasi",
             initialRoute: snapshot.data != null ? Routes.HOME : Routes.LOGIN,
             getPages: AppPages.routes,
             debugShowCheckedModeBanner: false,
