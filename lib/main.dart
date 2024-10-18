@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:lelang_fb/app/controllers/auth_controller.dart';
 import 'package:lelang_fb/app/utils/loading.dart';
 
+import 'app/modules/splash/views/splash_view.dart';
 import 'app/routes/app_pages.dart';
 
 void main() async {
@@ -18,19 +19,32 @@ class MyApp extends StatelessWidget {
   final authC = Get.put(AuthController(), permanent: true);
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: authC.streamAuthStatus,
+    return FutureBuilder(
+      future: Future.delayed(Duration(seconds: 3)),
       builder: (context, snapshot) {
-        print(snapshot);
-        if (snapshot.connectionState == ConnectionState.active) {
-          return GetMaterialApp(
-            title: "testkasi dua",
-            initialRoute: snapshot.data != null ? Routes.HOME : Routes.LOGIN,
-            getPages: AppPages.routes,
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return MaterialApp(
+            home: SplashView(),
             debugShowCheckedModeBanner: false,
           );
+        } else {
+          return StreamBuilder<User?>(
+            stream: authC.streamAuthStatus,
+            builder: (context, snapshot) {
+              print(snapshot);
+              if (snapshot.connectionState == ConnectionState.active) {
+                return GetMaterialApp(
+                  title: "testkasi dua",
+                  initialRoute:
+                      snapshot.data != null ? Routes.HOME : Routes.LOGIN,
+                  getPages: AppPages.routes,
+                  debugShowCheckedModeBanner: false,
+                );
+              }
+              return LoadingView();
+            },
+          );
         }
-        return LoadingView();
       },
     );
   }
