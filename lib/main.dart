@@ -1,12 +1,10 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:get/route_manager.dart';
 import 'package:get/get.dart';
 import 'package:lelang_fb/app/controllers/auth_controller.dart';
 import 'package:lelang_fb/app/utils/loading.dart';
 
-import 'app/modules/splash/views/splash_view.dart';
 import 'app/routes/app_pages.dart';
 
 void main() async {
@@ -20,12 +18,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
-      future: Future.delayed(Duration(seconds: 3)),
+      future: Future.delayed(Duration(seconds: 20)),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return MaterialApp(
-            home: SplashView(),
+          return GetMaterialApp(
             debugShowCheckedModeBanner: false,
+            getPages: AppPages.routes,
+            initialRoute: Routes.SPLASH,
+
           );
         } else {
           return StreamBuilder<User?>(
@@ -34,7 +34,6 @@ class MyApp extends StatelessWidget {
               print(snapshot);
               if (snapshot.connectionState == ConnectionState.active) {
                 return GetMaterialApp(
-                  title: "testkasi dua",
                   initialRoute:
                       snapshot.data != null ? Routes.HOME : Routes.LOGIN,
                   getPages: AppPages.routes,
