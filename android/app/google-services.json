@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "657218935272",
+    "project_id": "lelang-firebase",
+    "storage_bucket": "lelang-firebase.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:657218935272:android:b83ee3adccb5aef80b6c5d",
+        "android_client_info": {
+          "package_name": "com.lelang.lelang_fb"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpjJp0jWyimukMJ3uCu58jRu8GKmRVC7M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
