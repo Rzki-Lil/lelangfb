@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lelang_fb/core/assets/assets.gen.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../../core/assets/constants/color.dart';
+import '../../../../core/constants/color.dart';
 import '../controllers/splash_controller.dart';
 
 class SplashView extends GetView<SplashController> {
