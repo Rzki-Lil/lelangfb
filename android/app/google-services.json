@@ -12,7 +12,20 @@
           "package_name": "com.lelang.lelang_fb"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "657218935272-cgfoo2r9tj09kmvao2bigbv9tfuiljkk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lelang.lelang_fb",
+            "certificate_hash": "d306933ff52c4963c1e636bedb4154584ec51a98"
+          }
+        },
+        {
+          "client_id": "657218935272-9co4gvd08l31lgh942on2eg3948rh33t.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBpjJp0jWyimukMJ3uCu58jRu8GKmRVC7M"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "657218935272-9co4gvd08l31lgh942on2eg3948rh33t.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

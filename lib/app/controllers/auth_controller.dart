@@ -1,10 +1,15 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:lelang_fb/app/routes/app_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AuthController extends GetxController {
   FirebaseAuth auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: ['email'],
+    signInOption: SignInOption.standard,
+  );
   RxBool rememberMe = false.obs;
   RxBool isGuest = false.obs;
 
@@ -115,5 +120,37 @@ class AuthController extends GetxController {
     String email = prefs.getString('email') ?? '';
     String password = prefs.getString('password') ?? '';
     return {'email': email, 'password': password};
+  }
+
+  Future<void> signInWithGoogle() async {
+    try {
+      // Keluar dari akun Google yang mungkin sudah login sebelumnya
+      await _googleSignIn.signOut();
+      
+      // Meminta pengguna untuk memilih akun
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential = await auth.signInWithCredential(credential);
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        // Jangan simpan info login untuk Google
+        clearLoginInfo();
+        rememberMe.value = false;
+        
+        Get.offAllNamed(Routes.HOME);
+        Get.snackbar('Berhasil', 'Masuk sebagai ${user.displayName}');
+      }
+    } catch (e) {
+      print("Error saat login dengan Google: $e");
+      Get.snackbar('Error', 'Gagal masuk dengan Google');
+    }
   }
 }

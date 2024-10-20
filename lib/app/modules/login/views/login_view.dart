@@ -198,8 +198,7 @@ class LoginView extends GetView<LoginController> {
                 Expanded(
                   child: Button.outlined(
                     onPressed: () {
-                
-                      print("Login dengan Google");
+                      authC.signInWithGoogle();
                     },
                     label: 'Google',
                     color: Colors.white,
