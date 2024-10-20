@@ -14,6 +14,9 @@ class LoginView extends GetView<LoginController> {
   final passwordC = TextEditingController();
   final authC = Get.find<AuthController>();
 
+  final FocusNode emailFocus = FocusNode();
+  final FocusNode passwordFocus = FocusNode();
+
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -64,166 +67,179 @@ class LoginView extends GetView<LoginController> {
           ),
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(30.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Log in",
-              style: TextStyle(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: 30.0,
+            right: 30.0,
+            top: 30.0,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 30.0,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Log in",
+                style: TextStyle(
 
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            Text(
-              "Selamat Datang di Lelang ID",
-              style: TextStyle(
-                   fontSize: 15, color: Colors.grey),
-            ),
-            SizedBox(height: 24),
-            CustomTextField(
-              controller: emailC,
-              labelText: 'Email',
-              prefixIcon: Icon(Icons.email),
-              keyboardType: TextInputType.emailAddress,
-              height: 50,
-            ),
-            SizedBox(height: 16),
-            CustomTextField(
-              controller: passwordC,
-              labelText: 'Password',
-              isPassword: true,
-              prefixIcon: Icon(Icons.lock),
-              height: 50,
-            ),
-            SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Transform.translate(
-                  offset: Offset(-10, 0),
-                  child: Obx(() => Container(
-                        child: Checkbox(
-                          value: authC.rememberMe.value,
-                          onChanged: (value) {
-                            authC.rememberMe.value = value!;
-                          },
-                          activeColor: AppColors.hijauTua,
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
-                        ),
-                      )),
-                ),
-                Transform.translate(
-                  offset: Offset(-40, 0),
-                  child: Text(
-                    "Remember me",
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: Colors.grey,
+              Text(
+                "Selamat Datang di Lelang ID",
+                style: TextStyle(
+                     fontSize: 15, color: Colors.grey),
+              ),
+              SizedBox(height: 24),
+              CustomTextField(
+                controller: emailC,
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.email),
+                keyboardType: TextInputType.emailAddress,
+                height: 50,
+                focusNode: emailFocus, 
+                onSubmitted: (_) => FocusScope.of(context).requestFocus(passwordFocus), 
+              ),
+              SizedBox(height: 16),
+              CustomTextField(
+                controller: passwordC,
+                labelText: 'Password',
+                isPassword: true,
+                prefixIcon: Icon(Icons.lock),
+                height: 50,
+                focusNode: passwordFocus, 
+                onSubmitted: (_) => _handleLogin(context), 
+              ),
+              SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Transform.translate(
+                    offset: Offset(-10, 0),
+                    child: Obx(() => Container(
+                          child: Checkbox(
+                            value: authC.rememberMe.value,
+                            onChanged: (value) {
+                              authC.rememberMe.value = value!;
+                            },
+                            activeColor: AppColors.hijauTua,
+                            side: BorderSide(color: Colors.grey),
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                        )),
+                  ),
+                  Transform.translate(
+                    offset: Offset(-40, 0),
+                    child: Text(
+                      "Remember me",
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    print("Lupa password diklik");
-                  },
-                  child: Text(
-                    "Forgot Password?",
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: AppColors.hijauTua,
+                  GestureDetector(
+                    onTap: () {
+                      print("Lupa password diklik");
+                    },
+                    child: Text(
+                      "Forgot Password?",
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: AppColors.hijauTua,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16),
-            Button.filled(
-              onPressed: () => authC.login(emailC.text, passwordC.text),
-              label: 'Log in',
-              color: AppColors.hijauTua,
-              width: double.infinity,
-            ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "Don't have an account? ",
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () {
-                    Get.toNamed(Routes.SIGNUP);
-                    print("Sign up now diklik");
-                  },
-                  child: Text(
-                    "Sign up now",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.hijauTua,
-                      decoration: TextDecoration.underline,
-                      decorationColor: AppColors.hijauTua,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(child: Divider(color: Colors.grey)),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    "Or Sign in with",
+                ],
+              ),
+              SizedBox(height: 16),
+              Button.filled(
+                onPressed: () => _handleLogin(context), 
+                label: 'Log in',
+                color: AppColors.hijauTua,
+                width: double.infinity,
+              ),
+              SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "Don't have an account? ",
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey,
                     ),
                   ),
-                ),
-                Expanded(child: Divider(color: Colors.grey)),
-              ],
-            ),
-            SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: Button.outlined(
-                    onPressed: () {
-                      authC.signInWithGoogle();
+                  GestureDetector(
+                    onTap: () {
+                      Get.toNamed(Routes.SIGNUP);
+                      print("Sign up now diklik");
                     },
-                    label: 'Google',
-                    color: Colors.white,
-                    textColor: Colors.black,
-                    fontSize: 17,
-                    icon: Image.asset('assets/logo/google.png', height: 24),
+                    child: Text(
+                      "Sign up now",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.hijauTua,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.hijauTua,
+                      ),
+                    ),
                   ),
-                ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: Button.outlined(
-                    onPressed: () {
-                      authC.loginAsGuest();
-                    },
-                    label: 'Guest',
-                    color: Colors.white,
-                    fontSize: 17  ,
-                    textColor: Colors.black,
-                    icon: Icon(Icons.person_outline_rounded, color: Colors.black, size: 30),
-                    width: double.infinity,
+                ],
+              ),
+              SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Colors.grey)),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      "Or Sign in with",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                  Expanded(child: Divider(color: Colors.grey)),
+                ],
+              ),
+              SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: Button.outlined(
+                      onPressed: () {
+                        authC.signInWithGoogle();
+                      },
+                      label: 'Google',
+                      color: Colors.white,
+                      textColor: Colors.black,
+                      borderColor: Colors.grey,
+                      fontSize: 17,
+                      icon: Image.asset('assets/logo/google.png', height: 24),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Button.outlined(
+                      onPressed: () {
+                        authC.loginAsGuest();
+                      },
+                      label: 'Guest',
+                      color: Colors.white,
+                      fontSize: 17,
+                      textColor: Colors.black,
+                      borderColor: Colors.grey,
+                      icon: Icon(Icons.person_outline_rounded, color: Colors.black, size: 30),
+                      width: double.infinity,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -233,5 +249,13 @@ class LoginView extends GetView<LoginController> {
     Map<String, String> loginInfo = await authC.getLoginInfo();
     emailC.text = loginInfo['email'] ?? '';
     passwordC.text = loginInfo['password'] ?? '';
+  }
+
+  // Tambahkan metode ini
+  void _handleLogin(BuildContext context) {
+    // Sembunyikan keyboard
+    FocusScope.of(context).unfocus();
+    // Panggil metode login
+    authC.login(emailC.text, passwordC.text);
   }
 }

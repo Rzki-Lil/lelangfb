@@ -10,7 +10,9 @@ class CustomTextField extends StatefulWidget {
   final TextInputType keyboardType;
   final FormFieldValidator<String>? validator;
   final double? height;
-
+  final ValueChanged<String>? onChanged;
+  final FocusNode? focusNode;
+  final ValueChanged<String>? onSubmitted;
   const CustomTextField({
     Key? key,
     required this.controller,
@@ -21,6 +23,9 @@ class CustomTextField extends StatefulWidget {
     this.keyboardType = TextInputType.text,
     this.validator,
     this.height,
+    this.onChanged,
+    this.focusNode,
+    this.onSubmitted,
   }) : super(key: key);
 
   @override
@@ -28,13 +33,14 @@ class CustomTextField extends StatefulWidget {
 }
 
 class _CustomTextFieldState extends State<CustomTextField> {
-  final FocusNode _focusNode = FocusNode();
+  late FocusNode _focusNode;
   bool _obscureText = true;
   bool _isFocused = false;
 
   @override
   void initState() {
     super.initState();
+    _focusNode = widget.focusNode ?? FocusNode();
     _focusNode.addListener(() {
       setState(() {
         _isFocused = _focusNode.hasFocus;
@@ -44,7 +50,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    if (widget.focusNode == null) {
+      _focusNode.dispose();
+    }
     super.dispose();
   }
 
@@ -61,8 +69,10 @@ class _CustomTextFieldState extends State<CustomTextField> {
         keyboardType: widget.keyboardType,
         validator: widget.validator,
         focusNode: _focusNode,
+        onFieldSubmitted: widget.onSubmitted,
+        onChanged: widget.onChanged,
         style: TextStyle(
-          color: _isFocused ? activeColor : Colors.black,
+          color: AppColors.hijauTua,
           fontFamily: 'MotivaSans',
           fontSize: 15,
         ),
@@ -85,7 +95,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           suffixIcon: widget.isPassword
               ? IconButton(
                   icon: Icon(
-                    _obscureText ? Icons.visibility_off : Icons.visibility,
+                    _obscureText ? Icons.visibility : Icons.visibility_off,
                     color: _isFocused ? activeColor : inactiveColor,
                   ),
                   onPressed: () {

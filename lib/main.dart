@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'package:lelang_fb/app/controllers/auth_controller.dart';
+import 'package:lelang_fb/app/modules/emailVerification/views/email_verification_view.dart';
 import 'package:lelang_fb/app/utils/loading.dart';
 import 'package:lelang_fb/app/utils/app_theme.dart';
-
 import 'app/routes/app_pages.dart';
+import 'package:lelang_fb/app/modules/home/views/home_view.dart';
+import 'package:lelang_fb/app/modules/login/views/login_view.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,39 +18,26 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  final authC = Get.put(AuthController(), permanent: true);
+  final authController = Get.put(AuthController(), permanent: true);
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: Future.delayed(Duration(seconds: 4)),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return GetMaterialApp(
-            debugShowCheckedModeBanner: false,
-            getPages: AppPages.routes,
-            initialRoute: Routes.SPLASH,
-            theme: AppTheme.lightTheme,
-          );
+    return GetMaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Lelang FB',
+      theme: AppTheme.lightTheme,
+      getPages: AppPages.routes,
+      home: Obx(() {
+        if (authController.currentUser.value == null) {
+          return LoginView();
         } else {
-          return StreamBuilder<User?>(
-            stream: authC.streamAuthStatus,
-            builder: (context, snapshot) {
-              print(snapshot);
-              if (snapshot.connectionState == ConnectionState.active) {
-                return GetMaterialApp(
-                  initialRoute:
-                      snapshot.data != null ? Routes.HOME : Routes.LOGIN,
-                  getPages: AppPages.routes,
-                  debugShowCheckedModeBanner: false,
-                  theme: AppTheme.lightTheme,
-                );
-              }
-              return LoadingView();
-            },
-          );
+          if (authController.isEmailVerified.value || authController.isGuest.value) {
+            return HomeView();
+          } else {
+            return GetPage(name: Routes.EMAIL_VERIFICATION, page: () => EmailVerificationView()).page();
+          }
         }
-      },
+      }),
     );
   }
 }

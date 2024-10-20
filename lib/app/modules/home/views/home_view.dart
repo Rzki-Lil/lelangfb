@@ -10,8 +10,7 @@ class HomeView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    final authC =
-        Get.find<AuthController>(); // Mendapatkan instance AuthController
+    final authC = Get.find<AuthController>();
 
     return Scaffold(
       appBar: AppBar(
@@ -21,15 +20,31 @@ class HomeView extends GetView<HomeController> {
           IconButton(
             icon: Icon(Icons.logout),
             onPressed: () {
-              authC.logout(); // Memanggil metode logout
+              authC.logout();
             },
           ),
         ],
       ),
-      body: const Center(
-        child: Text(
-          'HomeView is working',
-          style: TextStyle(fontSize: 20),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Welcome to HomeView',
+              style: TextStyle(fontSize: 20),
+            ),
+            SizedBox(height: 20),
+            if (authC.isGuest.value)
+              Text(
+                'You are logged in as a guest',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              )
+            else
+              Text(
+                'Your email is verified',
+                style: TextStyle(fontSize: 16, color: Colors.green),
+              ),
+          ],
         ),
       ),
     );

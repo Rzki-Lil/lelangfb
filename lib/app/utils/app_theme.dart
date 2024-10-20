@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:lelang_fb/core/constants/color.dart';  // Pastikan import ini sesuai dengan struktur proyek Anda
+import 'package:lelang_fb/core/constants/color.dart';  
 
 class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       scaffoldBackgroundColor: Colors.white,
       appBarTheme: AppBarTheme(
-        backgroundColor: Colors.white,  // Gunakan backgroundColor alih-alih color
+        backgroundColor: Colors.white,  
         iconTheme: IconThemeData(color: Colors.black),
         titleTextStyle: TextStyle(
           color: Colors.black,
@@ -42,14 +42,10 @@ class AppTheme {
         onSecondary: Colors.black,
         onBackground: Colors.black,
         onSurface: Colors.black,
-        // Tambahkan warna lain sesuai kebutuhan
+
       ),
-      // Tambahkan pengaturan tema lainnya di sini
+
     );
   }
 
-  // Jika Anda memerlukan tema gelap, Anda bisa menambahkannya seperti ini:
-  // static ThemeData get darkTheme {
-  //   // Definisikan tema gelap di sini
-  // }
 }

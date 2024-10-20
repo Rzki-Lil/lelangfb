@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../modules/emailVerification/bindings/email_verification_binding.dart';
+import '../modules/emailVerification/views/email_verification_view.dart';
 import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/login/bindings/login_binding.dart';
@@ -23,8 +25,8 @@ class AppPages {
       binding: HomeBinding(),
     ),
     GetPage(
-      name: _Paths.SIGNUP,
-      page: () => const SignupView(),
+      name: Routes.SIGNUP,
+      page: () => SignupView(),
       binding: SignupBinding(),
     ),
     GetPage(
@@ -36,6 +38,11 @@ class AppPages {
       name: _Paths.SPLASH,
       page: () => const SplashView(),
       binding: SplashBinding(),
+    ),
+    GetPage(
+      name: Routes.EMAIL_VERIFICATION,
+      page: () => EmailVerificationView(),
+      binding: EmailVerificationBinding(),
     ),
   ];
 }

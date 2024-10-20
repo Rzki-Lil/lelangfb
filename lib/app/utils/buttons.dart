@@ -16,6 +16,7 @@ class Button extends StatelessWidget {
     this.disabled = false,
     this.fontSize = 16.0,
   })  : style = ButtonStyle.filled,
+        borderColor = Colors.transparent,
         super(key: key);
 
   const Button.outlined({
@@ -24,6 +25,7 @@ class Button extends StatelessWidget {
     required this.label,
     this.color = Colors.white,
     this.textColor = Colors.black,
+    this.borderColor = Colors.black,
     this.width = double.infinity,
     this.height = 50.0,
     this.borderRadius = 4.0,
@@ -38,6 +40,7 @@ class Button extends StatelessWidget {
   final ButtonStyle style;
   final Color color;
   final Color textColor;
+  final Color borderColor;
   final double width;
   final double height;
   final double borderRadius;
@@ -59,50 +62,39 @@ class Button extends StatelessWidget {
                   borderRadius: BorderRadius.circular(borderRadius),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (icon != null) ...[
-                    icon!,
-                    const SizedBox(width: 10.0),
-                  ],
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: fontSize,
-                      fontFamily: 'MotivaSans',
-                    ),
-                  ),
-                ],
-              ),
+              child: _buildButtonContent(),
             )
           : OutlinedButton(
               onPressed: disabled ? null : onPressed,
               style: OutlinedButton.styleFrom(
-                side: BorderSide(color: textColor),
+                side: BorderSide(color: borderColor),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(borderRadius),
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (icon != null) ...[
-                    icon!,
-                    const SizedBox(width: 10.0),
-                  ],
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: fontSize,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
+              child: _buildButtonContent(),
             ),
+    );
+  }
+
+  Widget _buildButtonContent() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (icon != null) ...[
+          icon!,
+          const SizedBox(width: 10.0),
+        ],
+        Text(
+          label,
+          style: TextStyle(
+            color: textColor,
+            fontSize: fontSize,
+            fontWeight: style == ButtonStyle.outlined ? FontWeight.w600 : FontWeight.normal,
+            fontFamily: style == ButtonStyle.filled ? 'MotivaSans' : null,
+          ),
+        ),
+      ],
     );
   }
 }

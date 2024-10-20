@@ -16,11 +16,44 @@ class AuthController extends GetxController {
   // Menggunakan getter untuk stream auth status
   Stream<User?> get streamAuthStatus => auth.authStateChanges();
 
+  Rx<User?> currentUser = Rx<User?>(null);
+  RxBool isEmailVerified = false.obs;
+
   @override
   void onInit() {
     super.onInit();
+    print("AuthController onInit called");
+    currentUser.bindStream(streamAuthStatus);
+    ever(currentUser, _setInitialScreen);
     loadRememberMeStatus();
     checkGuestStatus();
+  }
+
+  void _setInitialScreen(User? user) async {
+    if (user != null) {
+      await user.reload();
+      isEmailVerified.value = user.emailVerified;
+      isGuest.value = user.isAnonymous;
+      printUserInfo(user);
+    }
+  }
+
+  void navigateToHome() {
+    if (Get.currentRoute != Routes.HOME) {
+      Get.offAllNamed(Routes.HOME);
+    }
+  }
+
+  void navigateToEmailVerification() {
+    if (Get.currentRoute != Routes.EMAIL_VERIFICATION) {
+      Get.offNamed(Routes.EMAIL_VERIFICATION);
+    }
+  }
+
+  void navigateToLogin() {
+    if (Get.currentRoute != Routes.LOGIN) {
+      Get.offAllNamed(Routes.LOGIN);
+    }
   }
 
   void loadRememberMeStatus() async {
@@ -43,33 +76,34 @@ class AuthController extends GetxController {
         email: email,
         password: password,
       );
-      if (rememberMe.value) {
-        saveLoginInfo(email, password);
-      } else {
-        clearLoginInfo();
+      if (userCredential.user != null) {
+        printUserInfo(userCredential.user!);
+        if (userCredential.user!.emailVerified) {
+          if (rememberMe.value) {
+            saveLoginInfo(email, password);
+          } else {
+            clearLoginInfo();
+          }
+          navigateToHome();
+          Get.snackbar(
+              'Berhasil', 'Masuk sebagai ${userCredential.user?.email}');
+        } else {
+          await userCredential.user!.sendEmailVerification();
+          navigateToEmailVerification();
+        }
       }
-      Get.offAllNamed(Routes.HOME);
-      Get.snackbar('Berhasil', 'Masuk sebagai ${userCredential.user?.email}');
     } on FirebaseAuthException catch (e) {
       print("FirebaseAuthException: ${e.code} - ${e.message}");
-      switch (e.code) {
-        case 'user-not-found':
-          Get.snackbar('Error', 'Tidak ada pengguna dengan email tersebut.');
-          break;
-        case 'wrong-password':
-          Get.snackbar('Error', 'Password yang dimasukkan salah.');
-          break;
-        case 'invalid-credential':
-          Get.snackbar('Error', 'Email atau password salah.');
-          break;
-        case 'invalid-email':
-          Get.snackbar('Error', 'Format email tidak valid.');
-          break;
-        case 'too-many-requests':
-          Get.snackbar('Error', 'Terlalu banyak percobaan. Coba lagi nanti.');
-          break;
-        default:
-          Get.snackbar('Error', e.message ?? 'Terjadi kesalahan saat login');
+      if (e.code == 'user-not-found') {
+        Get.snackbar('Error', 'Tidak ada pengguna dengan email tersebut.');
+      } else if (e.code == 'wrong-password') {
+        Get.snackbar('Error', 'Password yang dimasukkan salah.');
+      } else if (e.code == 'invalid-email') {
+        Get.snackbar('Error', 'Format email tidak valid.');
+      } else if (e.code == 'user-disabled') {
+        Get.snackbar('Error', 'Akun pengguna telah dinonaktifkan.');
+      } else {
+        Get.snackbar('Error', e.message ?? 'Terjadi kesalahan saat login');
       }
     } catch (e) {
       print("Unexpected error: $e");
@@ -77,15 +111,79 @@ class AuthController extends GetxController {
     }
   }
 
+  Future<void> signInWithGoogle({String? email}) async {
+    try {
+      await _googleSignIn.signOut();
+
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return;
+
+      // Jika email diberikan, pastikan email Google cocok
+      if (email != null && googleUser.email != email) {
+        Get.snackbar(
+            'Error', 'Email Google tidak cocok dengan akun yang terdaftar');
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      try {
+        final UserCredential userCredential =
+            await auth.signInWithCredential(credential);
+        final User? user = userCredential.user;
+
+        if (user != null) {
+          printUserInfo(user); // Tambahkan ini
+          clearLoginInfo();
+          rememberMe.value = false;
+          navigateToHome();
+          Get.snackbar('Berhasil', 'Masuk sebagai ${user.displayName}');
+        }
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'account-exists-with-different-credential') {
+          // Coba menghubungkan akun Google dengan akun yang sudah ada
+          await linkGoogleAccount(googleUser);
+        } else {
+          Get.snackbar('Error',
+              e.message ?? 'Terjadi kesalahan saat login dengan Google');
+        }
+      }
+    } catch (e) {
+      print("Error saat login dengan Google: $e");
+      Get.snackbar('Error', 'Gagal masuk dengan Google');
+    }
+  }
+
+  Future<void> linkGoogleAccount(GoogleSignInAccount googleUser) async {
+    try {
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await auth.currentUser?.linkWithCredential(credential);
+      Get.snackbar('Berhasil', 'Akun Google berhasil dihubungkan');
+      navigateToHome();
+    } catch (e) {
+      print("Error saat menghubungkan akun Google: $e");
+      Get.snackbar('Error', 'Gagal menghubungkan akun Google');
+    }
+  }
+
   void loginAsGuest() async {
     try {
       await auth.signInAnonymously();
       isGuest.value = true;
-      Get.offAllNamed(Routes.HOME);
-      Get.snackbar('Berhasil', 'Masuk sebagai Tamu');
+      navigateToHome();
     } catch (e) {
-      print("Error saat login sebagai tamu: $e");
-      Get.snackbar('Error', 'Gagal masuk sebagai Tamu');
+      Get.snackbar('Error', 'Gagal masuk sebagai tamu');
     }
   }
 
@@ -98,7 +196,7 @@ class AuthController extends GetxController {
     clearLoginInfo();
     rememberMe.value = false;
     isGuest.value = false;
-    Get.offAllNamed(Routes.LOGIN);
+    navigateToLogin();
   }
 
   void saveLoginInfo(String email, String password) async {
@@ -122,35 +220,17 @@ class AuthController extends GetxController {
     return {'email': email, 'password': password};
   }
 
-  Future<void> signInWithGoogle() async {
-    try {
-      // Keluar dari akun Google yang mungkin sudah login sebelumnya
-      await _googleSignIn.signOut();
-      
-      // Meminta pengguna untuk memilih akun
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return;
-
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final UserCredential userCredential = await auth.signInWithCredential(credential);
-      final User? user = userCredential.user;
-
-      if (user != null) {
-        // Jangan simpan info login untuk Google
-        clearLoginInfo();
-        rememberMe.value = false;
-        
-        Get.offAllNamed(Routes.HOME);
-        Get.snackbar('Berhasil', 'Masuk sebagai ${user.displayName}');
-      }
-    } catch (e) {
-      print("Error saat login dengan Google: $e");
-      Get.snackbar('Error', 'Gagal masuk dengan Google');
-    }
+  void printUserInfo(User user) {
+    print('==== User Info ====');
+    print('UID: ${user.uid}');
+    print('Email: ${user.email}');
+    print('Display Name: ${user.displayName}');
+    print('Phone Number: ${user.phoneNumber}');
+    print('Email Verified: ${user.emailVerified}');
+    print('Is Anonymous: ${user.isAnonymous}');
+    print(
+        'Provider ID: ${user.providerData.map((e) => e.providerId).join(', ')}');
+    print('Photo URL: ${user.photoURL}'); 
+    print('====================');
   }
 }
