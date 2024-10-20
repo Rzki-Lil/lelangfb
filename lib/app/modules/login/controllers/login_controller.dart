@@ -4,6 +4,10 @@ class LoginController extends GetxController {
   //TODO: Implement LoginController
 
   final count = 0.obs;
+
+  get emailC => null;
+
+  get passwordC => null;
   @override
   void onInit() {
     super.onInit();

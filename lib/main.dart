@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'package:lelang_fb/app/controllers/auth_controller.dart';
 import 'package:lelang_fb/app/utils/loading.dart';
+import 'package:lelang_fb/app/utils/app_theme.dart';
 
 import 'app/routes/app_pages.dart';
 
@@ -15,6 +16,7 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final authC = Get.put(AuthController(), permanent: true);
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
@@ -25,7 +27,7 @@ class MyApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             getPages: AppPages.routes,
             initialRoute: Routes.SPLASH,
-
+            theme: AppTheme.lightTheme,
           );
         } else {
           return StreamBuilder<User?>(
@@ -38,6 +40,7 @@ class MyApp extends StatelessWidget {
                       snapshot.data != null ? Routes.HOME : Routes.LOGIN,
                   getPages: AppPages.routes,
                   debugShowCheckedModeBanner: false,
+                  theme: AppTheme.lightTheme,
                 );
               }
               return LoadingView();

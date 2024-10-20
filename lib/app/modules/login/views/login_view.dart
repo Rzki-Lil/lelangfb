@@ -1,94 +1,238 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:lelang_fb/app/routes/app_pages.dart';
 
 import '../../../../core/assets/assets.gen.dart';
 import '../../../../core/constants/color.dart';
 import '../controllers/login_controller.dart';
 import 'package:lelang_fb/app/controllers/auth_controller.dart';
+import 'package:lelang_fb/app/utils/buttons.dart';
+import 'package:lelang_fb/app/utils/custom_text_field.dart';
 
 class LoginView extends GetView<LoginController> {
   final emailC = TextEditingController();
   final passwordC = TextEditingController();
-  final authC = Get.find<AuthController>(); // Mendapatkan instance AuthController
+  final authC = Get.find<AuthController>();
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      loadLoginInfo();
+    });
+
     return Scaffold(
       appBar: AppBar(
-        title: Row(
+        automaticallyImplyLeading: false,
+        title: Padding(
+          padding: const EdgeInsets.all(13.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Assets.svg.logoLelangV2.svg(width: 40),
+                  SizedBox(width: 10),
+                  Text(
+                    "Lelang ",
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    "ID",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.hijauTua,
+                    ),
+                  ),
+                ],
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  print("Tombol X ditekan");
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.hijauTua,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  minimumSize: Size(40, 35),
+                  padding: EdgeInsets.zero, // Menghilangkan padding default
+                ),
+                child: Icon(Icons.close, color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(30.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Assets.svg.logoLelangV2.svg(width: 40),
-            SizedBox(width: 10),
             Text(
-              "Lelang ",
-              style: TextStyle(fontFamily: 'MotivaSansBold'),
-            ),
-            Text(
-              "ID",
+              "Log in",
               style: TextStyle(
-                fontFamily: 'MotivaSansBold',
-                fontWeight: FontWeight.bold,
-                color: AppColors.hijauTua,
+
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ],
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: GestureDetector(
-              onTap: () {
-                print("dsada");
-              },
-              child: Container(
-                height: 40,
-                width: 40,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  color: AppColors.hijauTua,
+            Text(
+              "Selamat Datang di Lelang ID",
+              style: TextStyle(
+                   fontSize: 15, color: Colors.grey),
+            ),
+            SizedBox(height: 24),
+            CustomTextField(
+              controller: emailC,
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.email),
+              keyboardType: TextInputType.emailAddress,
+              height: 50,
+            ),
+            SizedBox(height: 16),
+            CustomTextField(
+              controller: passwordC,
+              labelText: 'Password',
+              isPassword: true,
+              prefixIcon: Icon(Icons.lock),
+              height: 50,
+            ),
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Transform.translate(
+                  offset: Offset(-10, 0),
+                  child: Obx(() => Container(
+                        child: Checkbox(
+                          value: authC.rememberMe.value,
+                          onChanged: (value) {
+                            authC.rememberMe.value = value!;
+                          },
+                          activeColor: AppColors.hijauTua,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      )),
                 ),
-                child: Center(
+                Transform.translate(
+                  offset: Offset(-40, 0),
                   child: Text(
-                    "X",
+                    "Remember me",
                     style: TextStyle(
-                      color: AppColors.white,
+                      fontSize: 15,
+                      color: Colors.grey,
                     ),
                   ),
                 ),
-              ),
-            ),
-          )
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: emailC,
-              decoration: InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(),
-              ),
+                GestureDetector(
+                  onTap: () {
+                    print("Lupa password diklik");
+                  },
+                  child: Text(
+                    "Forgot Password?",
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: AppColors.hijauTua,
+                    ),
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: 16),
-            TextField(
-              controller: passwordC,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-              ),
-              obscureText: true,
+            Button.filled(
+              onPressed: () => authC.login(emailC.text, passwordC.text),
+              label: 'Log in',
+              color: AppColors.hijauTua,
+              width: double.infinity,
             ),
             SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: ()=> authC.login(emailC.text, passwordC.text),
-              child: Text('Login'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Don't have an account? ",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Get.toNamed(Routes.SIGNUP);
+                    print("Sign up now diklik");
+                  },
+                  child: Text(
+                    "Sign up now",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.hijauTua,
+                      decoration: TextDecoration.underline,
+                      decorationColor: AppColors.hijauTua,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(child: Divider(color: Colors.grey)),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    "Or Sign in with",
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+                Expanded(child: Divider(color: Colors.grey)),
+              ],
+            ),
+            SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: Button.outlined(
+                    onPressed: () {
+                
+                      print("Login dengan Google");
+                    },
+                    label: 'Google',
+                    color: Colors.white,
+                    textColor: Colors.black,
+                    fontSize: 17,
+                    icon: Image.asset('assets/logo/google.png', height: 24),
+                  ),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Button.outlined(
+                    onPressed: () {
+                      authC.loginAsGuest();
+                    },
+                    label: 'Guest',
+                    color: Colors.white,
+                    fontSize: 17  ,
+                    textColor: Colors.black,
+                    icon: Icon(Icons.person_outline_rounded, color: Colors.black, size: 30),
+                    width: double.infinity,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
+  }
+
+  void loadLoginInfo() async {
+    Map<String, String> loginInfo = await authC.getLoginInfo();
+    emailC.text = loginInfo['email'] ?? '';
+    passwordC.text = loginInfo['password'] ?? '';
   }
 }
