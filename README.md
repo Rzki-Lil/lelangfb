@@ -1,6 +1,6 @@
 # lelang_fb
 
-A new Flutter project.
+Proyek Akhir Mobile Programing
 
 ## Getting Started
 
