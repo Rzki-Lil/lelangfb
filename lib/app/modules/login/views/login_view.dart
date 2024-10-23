@@ -117,17 +117,18 @@ class LoginView extends GetView<LoginController> {
                 children: [
                   Transform.translate(
                     offset: Offset(-10, 0),
-                    child: Obx(() => Container(
-                          child: Checkbox(
-                            value: authC.rememberMe.value,
-                            onChanged: (value) {
-                              authC.rememberMe.value = value!;
-                            },
-                            activeColor: AppColors.hijauTua,
-                            side: BorderSide(color: Colors.grey),
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                        )),
+                    child: Obx(() => Checkbox(
+                      value: authC.rememberMe.value,
+                      onChanged: (value) {
+                        authC.rememberMe.value = value!;
+                        if (!value) {
+                          authC.clearLoginInfo();
+                        }
+                      },
+                      activeColor: AppColors.hijauTua,
+                      side: BorderSide(color: Colors.grey),
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    )),
                   ),
                   Transform.translate(
                     offset: Offset(-40, 0),
@@ -141,7 +142,7 @@ class LoginView extends GetView<LoginController> {
                   ),
                   GestureDetector(
                     onTap: () {
-                      print("Lupa password diklik");
+                      Get.toNamed(Routes.FORGOT_PASSWORD);
                     },
                     child: Text(
                       "Forgot Password?",

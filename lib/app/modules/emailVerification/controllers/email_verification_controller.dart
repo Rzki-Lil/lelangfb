@@ -7,11 +7,13 @@ class EmailVerificationController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   RxString email = ''.obs;
   RxBool isEmailVerified = false.obs;
-  RxInt countdown = 20.obs;
+  RxInt countdown = 60.obs;
   Timer? _timer;
   // ignore: unused_field
   int? _creationTime;
   RxBool isCountdownStarted = false.obs;
+  var hasShownInitialDialog = false.obs;
+  var isResendButtonPressed = false.obs;
 
   @override
   void onInit() {
@@ -64,7 +66,8 @@ class EmailVerificationController extends GetxController {
     if (user != null && !user.emailVerified) {
       await user.sendEmailVerification();
       Get.snackbar('Sukses', 'Email verifikasi telah dikirim ulang');
-      countdown.value = 20; 
+      countdown.value = 60; 
+      isResendButtonPressed.value = true;
     }
   }
 

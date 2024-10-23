@@ -13,6 +13,27 @@ class EmailVerificationView extends StatelessWidget {
     return GetX<EmailVerificationController>(
       init: EmailVerificationController(),
       builder: (controller) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!controller.hasShownInitialDialog.value) {
+            Get.dialog(
+              AlertDialog(
+                title: Text('Perhatian'),
+                content: Text('Pastikan email/nomor telepon yang Anda gunakan sesuai dengan akun yang sudah didaftarkan.'),
+                actions: [
+                  TextButton(
+                    child: Text('OK'),
+                    onPressed: () {
+                      Get.back();
+                      controller.hasShownInitialDialog.value = true;
+                    },
+                  ),
+                ],
+              ),
+              barrierDismissible: false,
+            );
+          }
+        });
+
         return Scaffold(
           appBar: AppBar(
             title: const Text('Verifikasi Email'),
@@ -35,15 +56,15 @@ class EmailVerificationView extends StatelessWidget {
                 ),
                 SizedBox(height: 10),
                 Text(
-                  'Kami telah mengirim email verifikasi ke ${controller.email.value}',
+                  'Kami telah mengirim link verifikasi ke ${controller.email.value}',
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16),
                 ),
                 SizedBox(height: 20),
                 Text(
-                  'Waktu tersisa: ${controller.countdown.value} detik',
+                  'Waktu klik link verifikasi ${controller.countdown.value} detik',
                   style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 8,
                       fontWeight: FontWeight.bold,
                       color: AppColors.hijauTua),
                 ),
@@ -55,13 +76,15 @@ class EmailVerificationView extends StatelessWidget {
                   width: double.infinity,
                 ),
                 SizedBox(height: 10),
-                Button.outlined(
+                Obx(() => Button.outlined(
                   onPressed: () => controller.resendVerificationEmail(),
                   label: 'Kirim ulang email verifikasi',
                   borderColor: AppColors.hijauTua,
                   textColor: AppColors.hijauTua,
                   width: double.infinity,
-                ),
+                  showBorder: controller.isResendButtonPressed.value,
+                  borderWidth: 2.0,  // Atur ketebalan outline di sini
+                )),
               ],
             ),
           ),

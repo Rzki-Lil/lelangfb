@@ -23,18 +23,23 @@ class AuthController extends GetxController {
   void onInit() {
     super.onInit();
     print("AuthController onInit called");
+    currentUser = Rx<User?>(auth.currentUser);
     currentUser.bindStream(streamAuthStatus);
     ever(currentUser, _setInitialScreen);
     loadRememberMeStatus();
     checkGuestStatus();
+    checkEmailVerificationStatus();
   }
 
   void _setInitialScreen(User? user) async {
+    print("_setInitialScreen called with user: ${user?.email}");
     if (user != null) {
       await user.reload();
       isEmailVerified.value = user.emailVerified;
       isGuest.value = user.isAnonymous;
       printUserInfo(user);
+    } else {
+      print("User is null in _setInitialScreen");
     }
   }
 
@@ -66,6 +71,12 @@ class AuthController extends GetxController {
         if (auth.currentUser == null) {
           login(email, password);
         }
+      }
+    } else {
+      // Jika Remember Me tidak diaktifkan, pastikan untuk menghapus informasi login
+      clearLoginInfo();
+      if (auth.currentUser != null) {
+        logout();
       }
     }
   }
@@ -211,6 +222,8 @@ class AuthController extends GetxController {
     await prefs.remove('email');
     await prefs.remove('password');
     await prefs.remove('rememberMe');
+    rememberMe.value = false;
+    print("Login info cleared"); // Tambahkan log ini
   }
 
   Future<Map<String, String>> getLoginInfo() async {
@@ -232,5 +245,16 @@ class AuthController extends GetxController {
         'Provider ID: ${user.providerData.map((e) => e.providerId).join(', ')}');
     print('Photo URL: ${user.photoURL}'); 
     print('====================');
+  }
+
+  Future<void> checkEmailVerificationStatus() async {
+    User? user = auth.currentUser;
+    if (user != null && !user.isAnonymous) {
+      await user.reload();
+      isEmailVerified.value = user.emailVerified;
+      print("Email verified: ${isEmailVerified.value}");
+    } else {
+      print("User is null or anonymous in checkEmailVerificationStatus");
+    }
   }
 }
