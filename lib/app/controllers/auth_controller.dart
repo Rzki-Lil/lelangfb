@@ -73,7 +73,6 @@ class AuthController extends GetxController {
         }
       }
     } else {
-      // Jika Remember Me tidak diaktifkan, pastikan untuk menghapus informasi login
       clearLoginInfo();
       if (auth.currentUser != null) {
         logout();
@@ -97,7 +96,7 @@ class AuthController extends GetxController {
           }
           navigateToHome();
           Get.snackbar(
-              'Berhasil', 'Masuk sebagai ${userCredential.user?.email}');
+              'Berhasil', 'Masuk sebagai ${userCredential.user?.displayName}');
         } else {
           await userCredential.user!.sendEmailVerification();
           navigateToEmailVerification();
