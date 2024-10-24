@@ -13,7 +13,6 @@ class ForgotPasswordController extends GetxController {
 
   var hasShownInitialDialog = false.obs;
 
-  // Tambahkan ini
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
 
@@ -31,17 +30,15 @@ class ForgotPasswordController extends GetxController {
 
   Future<bool> checkEmailRegistered(String email) async {
     try {
-      // Coba sign in dengan password yang pasti salah
       await _auth.signInWithEmailAndPassword(
           email: email, password: "incorrect_password");
-      return true; // Jika tidak error, berarti email terdaftar
+      return true;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'user-not-found') {
-        return false; // Email tidak terdaftar
+        return false;
       } else if (e.code == 'wrong-password') {
-        return true; // Email terdaftar tapi password salah
+        return true;
       } else {
-        // Handle other errors
         return false;
       }
     }
@@ -50,8 +47,6 @@ class ForgotPasswordController extends GetxController {
   Future<void> passwordReset() async {
     isLoading.value = true;
     String email = emailController.text.trim();
-
-    // Cek apakah email terdaftar
     bool isRegistered = await checkEmailRegistered(email);
     if (!isRegistered) {
       message.value = 'Email tidak terdaftar di aplikasi.';
@@ -76,19 +71,14 @@ class ForgotPasswordController extends GetxController {
     try {
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
-        verificationCompleted: (PhoneAuthCredential credential) async {
-          // Otomatis sign in (untuk Android)
-        },
+        verificationCompleted: (PhoneAuthCredential credential) async {},
         verificationFailed: (FirebaseAuthException e) {
           message.value = 'Verifikasi gagal: ${e.message}';
         },
         codeSent: (String verificationId, int? resendToken) {
           message.value = 'Kode verifikasi telah dikirim ke $phoneNumber';
-          // Simpan verificationId untuk digunakan nanti
         },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          // Auto-retrieval timeout
-        },
+        codeAutoRetrievalTimeout: (String verificationId) {},
       );
     } catch (e) {
       message.value = 'Gagal mengirim kode verifikasi: ${e.toString()}';

@@ -128,7 +128,6 @@ class AuthController extends GetxController {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return;
 
-      // Jika email diberikan, pastikan email Google cocok
       if (email != null && googleUser.email != email) {
         Get.snackbar(
             'Error', 'Email Google tidak cocok dengan akun yang terdaftar');
@@ -148,7 +147,7 @@ class AuthController extends GetxController {
         final User? user = userCredential.user;
 
         if (user != null) {
-          printUserInfo(user); // Tambahkan ini
+          printUserInfo(user); 
           clearLoginInfo();
           rememberMe.value = false;
           navigateToHome();
@@ -156,7 +155,6 @@ class AuthController extends GetxController {
         }
       } on FirebaseAuthException catch (e) {
         if (e.code == 'account-exists-with-different-credential') {
-          // Coba menghubungkan akun Google dengan akun yang sudah ada
           await linkGoogleAccount(googleUser);
         } else {
           Get.snackbar('Error',
