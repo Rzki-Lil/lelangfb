@@ -7,10 +7,10 @@ import '../../../utils/custom_text_field.dart';
 import '../../../utils/buttons.dart';
 
 class ForgotPasswordView extends GetView<ForgotPasswordController> {
+  final FocusNode emailFocus = FocusNode();
+  final FocusNode phoneFocus = FocusNode();
   @override
   Widget build(BuildContext context) {
- 
-
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -94,6 +94,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
                         keyboardType: TextInputType.emailAddress,
                         prefixIcon: Icon(Icons.email),
                         height: 60,
+                        focusNode: emailFocus,
                       )
                     : CustomTextField(
                         controller: controller.phoneController,
@@ -101,6 +102,7 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
                         keyboardType: TextInputType.phone,
                         prefixIcon: Icon(Icons.phone),
                         height: 60,
+                        focusNode: phoneFocus,
                       ),
               ),
               SizedBox(height: 16),
@@ -111,8 +113,8 @@ class ForgotPasswordView extends GetView<ForgotPasswordController> {
                             if (controller.isEmailSelected.value) {
                               await controller.passwordReset();
                             } else {
-                              await controller
-                                  .resetPasswordWithPhone(controller.phoneController.text);
+                              await controller.resetPasswordWithPhone(
+                                  controller.phoneController.text);
                             }
                             if (controller.message.value.isNotEmpty) {
                               Get.snackbar('Info', controller.message.value);

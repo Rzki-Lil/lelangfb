@@ -252,11 +252,9 @@ class LoginView extends GetView<LoginController> {
     passwordC.text = loginInfo['password'] ?? '';
   }
 
-  // Tambahkan metode ini
+
   void _handleLogin(BuildContext context) {
-    // Sembunyikan keyboard
     FocusScope.of(context).unfocus();
-    // Panggil metode login
     authC.login(emailC.text, passwordC.text);
   }
 }
