@@ -15,12 +15,50 @@ import 'package:vector_graphics/vector_graphics.dart' as _vg;
 class $AssetsLogoGen {
   const $AssetsLogoGen();
 
+  /// File path: assets/logo/google.png
+  AssetGenImage get google => const AssetGenImage('assets/logo/google.png');
+
+  /// File path: assets/logo/lelang.png
+  AssetGenImage get lelang => const AssetGenImage('assets/logo/lelang.png');
+
+  /// File path: assets/logo/lelangv2.png
+  AssetGenImage get lelangv2 => const AssetGenImage('assets/logo/lelangv2.png');
+
+  /// File path: assets/logo/logo_auction.png
+  AssetGenImage get logoAuction =>
+      const AssetGenImage('assets/logo/logo_auction.png');
+
+  /// File path: assets/logo/logo_lifestyle.png
+  AssetGenImage get logoLifestyle =>
+      const AssetGenImage('assets/logo/logo_lifestyle.png');
+
+  /// File path: assets/logo/logo_mobil.png
+  AssetGenImage get logoMobil =>
+      const AssetGenImage('assets/logo/logo_mobil.png');
+
+  /// File path: assets/logo/logo_motor.png
+  AssetGenImage get logoMotor =>
+      const AssetGenImage('assets/logo/logo_motor.png');
+
   /// File path: assets/logo/logo_unpak.png
   AssetGenImage get logoUnpak =>
       const AssetGenImage('assets/logo/logo_unpak.png');
 
+  /// File path: assets/logo/mobil.png
+  AssetGenImage get mobil => const AssetGenImage('assets/logo/mobil.png');
+
   /// List of all assets
-  List<AssetGenImage> get values => [logoUnpak];
+  List<AssetGenImage> get values => [
+        google,
+        lelang,
+        lelangv2,
+        logoAuction,
+        logoLifestyle,
+        logoMobil,
+        logoMotor,
+        logoUnpak,
+        mobil
+      ];
 }
 
 class $AssetsSvgGen {
@@ -33,6 +71,12 @@ class $AssetsSvgGen {
   SvgGenImage get logoLelangV2 =>
       const SvgGenImage('assets/svg/logo_lelang_v2.svg');
 
+  /// File path: assets/svg/logo_mobil.svg
+  SvgGenImage get logoMobil => const SvgGenImage('assets/svg/logo_mobil.svg');
+
+  /// File path: assets/svg/logo_motor.svg
+  SvgGenImage get logoMotor => const SvgGenImage('assets/svg/logo_motor.svg');
+
   /// File path: assets/svg/logo_unpak.svg
   SvgGenImage get logoUnpak => const SvgGenImage('assets/svg/logo_unpak.svg');
 
@@ -41,7 +85,7 @@ class $AssetsSvgGen {
 
   /// List of all assets
   List<SvgGenImage> get values =>
-      [logoLelang, logoLelangV2, logoUnpak, logoWhite];
+      [logoLelang, logoLelangV2, logoMobil, logoMotor, logoUnpak, logoWhite];
 }
 
 class Assets {

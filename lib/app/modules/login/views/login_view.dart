@@ -81,7 +81,6 @@ class LoginView extends GetView<LoginController> {
               Text(
                 "Log in",
                 style: TextStyle(
-
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                 ),
