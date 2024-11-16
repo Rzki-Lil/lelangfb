@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class EventCard extends StatelessWidget {
   final String date;
@@ -8,7 +7,7 @@ class EventCard extends StatelessWidget {
   final String location;
   final String imageUrl;
 
-  const EventCard({
+   EventCard({
     Key? key,
     required this.date,
     required this.month,
@@ -20,7 +19,7 @@ class EventCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(10),
       child: GestureDetector(
         child: Container(
           width: 150,
@@ -82,9 +81,11 @@ class EventCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Image.asset(
-                    imageUrl,
-                    fit: BoxFit.cover,
+                  Expanded(
+                    child: Image.asset(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ],
               ),

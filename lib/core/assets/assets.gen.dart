@@ -15,6 +15,12 @@ import 'package:vector_graphics/vector_graphics.dart' as _vg;
 class $AssetsLogoGen {
   const $AssetsLogoGen();
 
+  /// File path: assets/logo/bmw.png
+  AssetGenImage get bmw => const AssetGenImage('assets/logo/bmw.png');
+
+  /// File path: assets/logo/calendar.png
+  AssetGenImage get calendar => const AssetGenImage('assets/logo/calendar.png');
+
   /// File path: assets/logo/google.png
   AssetGenImage get google => const AssetGenImage('assets/logo/google.png');
 
@@ -47,8 +53,13 @@ class $AssetsLogoGen {
   /// File path: assets/logo/mobil.png
   AssetGenImage get mobil => const AssetGenImage('assets/logo/mobil.png');
 
+  /// File path: assets/logo/yaris.png
+  AssetGenImage get yaris => const AssetGenImage('assets/logo/yaris.png');
+
   /// List of all assets
   List<AssetGenImage> get values => [
+        bmw,
+        calendar,
         google,
         lelang,
         lelangv2,
@@ -57,12 +68,16 @@ class $AssetsLogoGen {
         logoMobil,
         logoMotor,
         logoUnpak,
-        mobil
+        mobil,
+        yaris
       ];
 }
 
 class $AssetsSvgGen {
   const $AssetsSvgGen();
+
+  /// File path: assets/svg/calender.svg
+  SvgGenImage get calender => const SvgGenImage('assets/svg/calender.svg');
 
   /// File path: assets/svg/logo_lelang.svg
   SvgGenImage get logoLelang => const SvgGenImage('assets/svg/logo_lelang.svg');
@@ -83,9 +98,20 @@ class $AssetsSvgGen {
   /// File path: assets/svg/logo_white.svg
   SvgGenImage get logoWhite => const SvgGenImage('assets/svg/logo_white.svg');
 
+  /// File path: assets/svg/mobil.svg
+  SvgGenImage get mobil => const SvgGenImage('assets/svg/mobil.svg');
+
   /// List of all assets
-  List<SvgGenImage> get values =>
-      [logoLelang, logoLelangV2, logoMobil, logoMotor, logoUnpak, logoWhite];
+  List<SvgGenImage> get values => [
+        calender,
+        logoLelang,
+        logoLelangV2,
+        logoMobil,
+        logoMotor,
+        logoUnpak,
+        logoWhite,
+        mobil
+      ];
 }
 
 class Assets {

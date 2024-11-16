@@ -26,7 +26,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
               color: Colors.lightBlue.shade100,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Image.asset(Assets.logo.logoMobil.path),
+            child: Assets.logo.logoMobil.image(),
           ),
           SizedBox(height: 8),
           Text(
@@ -182,7 +182,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       "date": "17",
       "month": "November",
       "time": "14:00 WIB",
-      "location": "BOGOR",
+      "location": "CIBATOK",
       "imageURL": "assets/logo/mobil.png"
     },
     {
@@ -265,6 +265,50 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       "time": "12:00 WIB",
       "location": "JAKARTA",
       "imageURL": "assets/logo/logo_lifestyle.png"
+    },
+  ];
+  final List<Map<String, String>> items = [
+    {
+      'grade': 'A',
+      'imageURL': 'assets/logo/yaris.png',
+      'judul': 'Toyota Avanza',
+      'tahunMobil': '2021',
+      'tipe': 'MT',
+      'platNomor': 'B 1234 ABC',
+      'harga': 'Rp 200.000.000',
+      'tanggal': '16',
+      'bulan': 'Nov',
+      'tahun': '2024',
+      'lokasi': 'CIBATOK',
+      'jamBidding': '10:00 AM',
+    },
+    {
+      'grade': 'B',
+      'imageURL': 'assets/logo/bmw.png',
+      'judul': 'Honda Civic',
+      'tahunMobil': '2019',
+      'tipe': 'MN',
+      'platNomor': 'D 5678 DEF',
+      'harga': 'Rp 300.000.000',
+      'tanggal': '20',
+      'bulan': 'Nov',
+      'tahun': '2024',
+      'lokasi': 'BOGOR',
+      'jamBidding': '02:00 PM',
+    },
+    {
+      'grade': 'D',
+      'imageURL': 'assets/logo/mobil.png',
+      'judul': 'Honda Civic',
+      'tahunMobil': '2019',
+      'tipe': 'MN',
+      'platNomor': 'D 5678 DEF',
+      'harga': 'Rp 300.000.000',
+      'tanggal': '20',
+      'bulan': 'Nov',
+      'tahun': '2024',
+      'lokasi': 'BOGOR',
+      'jamBidding': '02:00 PM',
     },
   ];
 }

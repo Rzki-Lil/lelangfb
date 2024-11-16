@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
 import 'package:lelang_fb/app/utils/event_card.dart';
+import 'package:lelang_fb/app/utils/items_card.dart';
 
 import '../controllers/home_controller.dart';
 import 'package:lelang_fb/app/controllers/auth_controller.dart';
@@ -27,11 +28,11 @@ class HomeView extends GetView<HomeController> {
       ),
       body: SingleChildScrollView(
         scrollDirection: Axis.vertical,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              Container(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Container(
                 height: 200,
                 child: Stack(children: [
                   PageView.builder(
@@ -72,17 +73,23 @@ class HomeView extends GetView<HomeController> {
                   ),
                 ]),
               ),
-              SizedBox(
-                height: 16,
-              ),
-              Row(
+            ),
+            SizedBox(
+              height: 16,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: controller.menuItems,
               ),
-              SizedBox(
-                height: 16,
-              ),
-              Row(
+            ),
+            SizedBox(
+              height: 16,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
@@ -100,7 +107,10 @@ class HomeView extends GetView<HomeController> {
                   ),
                 ],
               ),
-              Container(
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Container(
                 color: Colors.white,
                 child: TabBar(
                   controller: controller.tabController,
@@ -128,19 +138,56 @@ class HomeView extends GetView<HomeController> {
                   ],
                 ),
               ),
-              Container(
-                height: 170,
-                child: TabBarView(
-                  controller: controller.tabController,
-                  children: [
-                    buildEventList(controller.carEvents),
-                    buildEventList(controller.motorEvents),
-                    buildEventList(controller.lifestyeEvents),
-                  ],
-                ),
+            ),
+            Container(
+              height: 170,
+              child: TabBarView(
+                controller: controller.tabController,
+                children: [
+                  buildEventList(controller.carEvents),
+                  buildEventList(controller.motorEvents),
+                  buildEventList(controller.lifestyeEvents),
+                ],
               ),
-            ],
-          ),
+            ),
+            Container(
+              width: MediaQuery.of(context).size.width,
+              decoration: BoxDecoration(color: Colors.grey),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Currently Trending",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                              color: Colors.white),
+                        ),
+                        Text(
+                          "See all",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 5,
+                  ),
+                  Container(
+                    height: 280,
+                    child: buildItemsList(controller.items),
+                  ),
+                ],
+              ),
+            )
+          ],
         ),
       ),
     );
@@ -159,6 +206,30 @@ Widget buildEventList(List<Map<String, String>> events) {
         time: event["time"]!,
         location: event["location"]!,
         imageUrl: event["imageURL"]!, // Ganti dengan path aset gambar Anda
+      );
+    },
+  );
+}
+
+Widget buildItemsList(List<Map<String, String>> items) {
+  return ListView.builder(
+    scrollDirection: Axis.horizontal,
+    itemCount: items.length,
+    itemBuilder: (context, index) {
+      final item = items[index];
+      return ItemsCard(
+        grade: item["grade"]!,
+        imageURL: item["imageURL"]!,
+        judul: item["judul"]!,
+        tahunMobil: item["tahunMobil"]!,
+        tipe: item["tipe"]!,
+        platNomor: item["platNomor"]!,
+        harga: item["harga"]!,
+        tanggal: item["tanggal"]!,
+        bulan: item["bulan"]!,
+        tahun: item["tahun"]!,
+        lokasi: item["lokasi"]!,
+        jamBidding: item["jamBidding"]!,
       );
     },
   );
