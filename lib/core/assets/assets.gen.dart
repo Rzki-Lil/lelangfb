@@ -12,6 +12,56 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart' as _svg;
 import 'package:vector_graphics/vector_graphics.dart' as _vg;
 
+class $AssetsFontsGen {
+  const $AssetsFontsGen();
+
+  /// File path: assets/fonts/MotivaSansBlack.woff.ttf
+  String get motivaSansBlackWoff => 'assets/fonts/MotivaSansBlack.woff.ttf';
+
+  /// File path: assets/fonts/MotivaSansBold.woff.ttf
+  String get motivaSansBoldWoff => 'assets/fonts/MotivaSansBold.woff.ttf';
+
+  /// File path: assets/fonts/MotivaSansExtraBold.ttf
+  String get motivaSansExtraBold => 'assets/fonts/MotivaSansExtraBold.ttf';
+
+  /// File path: assets/fonts/MotivaSansLight.woff.ttf
+  String get motivaSansLightWoff => 'assets/fonts/MotivaSansLight.woff.ttf';
+
+  /// File path: assets/fonts/MotivaSansMedium.woff.ttf
+  String get motivaSansMediumWoff => 'assets/fonts/MotivaSansMedium.woff.ttf';
+
+  /// File path: assets/fonts/MotivaSansRegular.ttf
+  String get motivaSansRegular => 'assets/fonts/MotivaSansRegular.ttf';
+
+  /// File path: assets/fonts/MotivaSansRegular.woff.ttf
+  String get motivaSansRegularWoff => 'assets/fonts/MotivaSansRegular.woff.ttf';
+
+  /// File path: assets/fonts/MotivaSansThin.ttf
+  String get motivaSansThin => 'assets/fonts/MotivaSansThin.ttf';
+
+  /// List of all assets
+  List<String> get values => [
+        motivaSansBlackWoff,
+        motivaSansBoldWoff,
+        motivaSansExtraBold,
+        motivaSansLightWoff,
+        motivaSansMediumWoff,
+        motivaSansRegular,
+        motivaSansRegularWoff,
+        motivaSansThin
+      ];
+}
+
+class $AssetsImagesGen {
+  const $AssetsImagesGen();
+
+  /// File path: assets/images/banner1.png
+  AssetGenImage get banner1 => const AssetGenImage('assets/images/banner1.png');
+
+  /// List of all assets
+  List<AssetGenImage> get values => [banner1];
+}
+
 class $AssetsLogoGen {
   const $AssetsLogoGen();
 
@@ -33,6 +83,10 @@ class $AssetsLogoGen {
   /// File path: assets/logo/logo_auction.png
   AssetGenImage get logoAuction =>
       const AssetGenImage('assets/logo/logo_auction.png');
+
+  /// File path: assets/logo/logo_banner.png
+  AssetGenImage get logoBanner =>
+      const AssetGenImage('assets/logo/logo_banner.png');
 
   /// File path: assets/logo/logo_lifestyle.png
   AssetGenImage get logoLifestyle =>
@@ -64,6 +118,7 @@ class $AssetsLogoGen {
         lelang,
         lelangv2,
         logoAuction,
+        logoBanner,
         logoLifestyle,
         logoMobil,
         logoMotor,
@@ -117,6 +172,8 @@ class $AssetsSvgGen {
 class Assets {
   Assets._();
 
+  static const $AssetsFontsGen fonts = $AssetsFontsGen();
+  static const $AssetsImagesGen images = $AssetsImagesGen();
   static const $AssetsLogoGen logo = $AssetsLogoGen();
   static const $AssetsSvgGen svg = $AssetsSvgGen();
 }

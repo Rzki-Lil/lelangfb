@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:lelang_fb/core/assets/assets.gen.dart';
+
 
 class ItemsCard extends StatelessWidget {
   final String grade;
@@ -44,10 +43,16 @@ class ItemsCard extends StatelessWidget {
           children: [
             Stack(
               children: [
-                Image.asset(
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  imageURL,
+                ClipRRect(
+                  borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(10),
+                      topRight: Radius.circular(10)),
+                  child: Image.asset(
+                    width: double.infinity,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    imageURL,
+                  ),
                 ),
                 Positioned(
                   top: 10,
@@ -97,9 +102,19 @@ class ItemsCard extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      SvgPicture.asset(
-                        'assets/svg/calender.svg',
+                      Icon(
+                        Icons.calendar_month,
+                        size: 12,
                       ),
+
+                      // child: SvgPicture.asset(
+                      //   'assets/svg/calender.svg',
+                      //   semanticsLabel: 'contoh',
+                      //   fit: BoxFit.cover,
+                      //   colorFilter:
+                      //       ColorFilter.mode(Colors.black, BlendMode.srcIn),
+                      // ),
+                      SizedBox(width: 2),
                       Text(
                         tanggal + " " + bulan + " " + tahun,
                         style: TextStyle(
@@ -111,6 +126,7 @@ class ItemsCard extends StatelessWidget {
                   Row(
                     children: [
                       Icon(Icons.location_on_outlined, size: 12),
+                      SizedBox(width: 2),
                       Text(
                         lokasi,
                         style: TextStyle(

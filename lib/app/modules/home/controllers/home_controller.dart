@@ -1,19 +1,20 @@
 import 'package:get/get.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:lelang_fb/app/modules/home/views/home.dart';
+import 'package:lelang_fb/app/modules/home/views/profile_view.dart';
 import 'package:lelang_fb/core/assets/assets.gen.dart';
 
 class HomeController extends GetxController with SingleGetTickerProviderMixin {
-  //TODO: Implement HomeController
-
+  final selectedIndex = 0.obs;
   final count = 0.obs;
+  final search = FocusNode();
 
   @override
   void onReady() {
     super.onReady();
   }
 
-  void increment() => count.value++;
   final double width = 70;
   List<Widget> get menuItems {
     return [
@@ -99,9 +100,13 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
     ];
   }
 
-  final pageController = PageController(initialPage: 0);
   var currentPage = 0.obs;
   Timer? _timer;
+
+  final listNew = [
+    Assets.images.banner1.path,
+    Assets.logo.logoBanner.path,
+  ];
 
   final List<Widget> container = [
     Container(
@@ -143,38 +148,30 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       ),
     ),
   ];
-
+  final List<Widget> widgetOptions = [
+    Home(),
+    Home(),
+    Text("add"),
+    Text("List"),
+    ProfileView(),
+  ];
   @override
   void onInit() {
     super.onInit();
-    _startAutoSlide();
+    // _startAutoSlide();
     tabController = TabController(length: 3, vsync: this);
   }
 
-  void _startAutoSlide() {
-    _timer = Timer.periodic(Duration(seconds: 3), (timer) {
-      if (currentPage.value < container.length - 1) {
-        currentPage.value++;
-        pageController.animateToPage(
-          currentPage.value,
-          duration: Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-        );
-      } else {
-        currentPage.value = 0;
-        pageController.jumpToPage(0);
-      }
-    });
-  }
-
   @override
-  void onClose() {
+  void dispose() {
     _timer?.cancel();
-    pageController.dispose();
+    // pageController.dispose();
     tabController.dispose();
 
-    super.onClose();
+    super.dispose();
   }
+
+  void increment() => count.value++;
 
   late TabController tabController;
   final List<Map<String, String>> carEvents = [
