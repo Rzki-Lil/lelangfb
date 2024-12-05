@@ -7,7 +7,7 @@ class EventCard extends StatelessWidget {
   final String location;
   final String imageUrl;
 
-   EventCard({
+  EventCard({
     Key? key,
     required this.date,
     required this.month,

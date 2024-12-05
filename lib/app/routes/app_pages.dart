@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../modules/detailItem/bindings/detail_item_binding.dart';
+import '../modules/detailItem/views/detail_item_view.dart';
 import '../modules/emailVerification/bindings/email_verification_binding.dart';
 import '../modules/emailVerification/views/email_verification_view.dart';
 import '../modules/forgotPassword/bindings/forgot_password_binding.dart';
@@ -50,6 +52,11 @@ class AppPages {
       name: Routes.FORGOT_PASSWORD,
       page: () => ForgotPasswordView(),
       binding: ForgotPasswordBinding(),
+    ),
+    GetPage(
+      name: _Paths.DETAIL_ITEM,
+      page: () => const DetailItemView(),
+      binding: DetailItemBinding(),
     ),
   ];
 }

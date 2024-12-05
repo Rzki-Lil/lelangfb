@@ -278,6 +278,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       'tahun': '2024',
       'lokasi': 'CIBATOK',
       'jamBidding': '10:00 AM',
+      'deskripsi': 'dongoooooooooooooooooooooooo',
     },
     {
       'grade': 'B',
@@ -292,6 +293,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       'tahun': '2024',
       'lokasi': 'BOGOR',
       'jamBidding': '02:00 PM',
+      'deskripsi': 'dongoooooooooooooooooooooooo',
     },
     {
       'grade': 'D',
@@ -306,6 +308,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       'tahun': '2024',
       'lokasi': 'BOGOR',
       'jamBidding': '02:00 PM',
+      'deskripsi': 'dongoooooooooooooooooooooooo',
     },
   ];
 }

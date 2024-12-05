@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 class ItemsCard extends StatelessWidget {
   final String grade;
   final String imageURL;
@@ -14,6 +13,8 @@ class ItemsCard extends StatelessWidget {
   final String tahun;
   final String lokasi;
   final String jamBidding;
+  final String? deskripsi;
+
   const ItemsCard({
     required this.grade,
     required this.imageURL,
@@ -27,17 +28,27 @@ class ItemsCard extends StatelessWidget {
     required this.tahun,
     required this.lokasi,
     required this.jamBidding,
+    this.deskripsi = 'Deskripsi tidak tersedia',
     super.key,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(right: 20, left: 10, bottom: 20),
+      padding: const EdgeInsets.only(right: 10, left: 10, bottom: 20),
       child: Container(
         width: 200,
+        height: 100,
         decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10), color: Colors.white),
+            borderRadius: BorderRadius.circular(10),
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey,
+                spreadRadius: 1,
+                blurRadius: 15,
+              )
+            ]),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -106,14 +117,6 @@ class ItemsCard extends StatelessWidget {
                         Icons.calendar_month,
                         size: 12,
                       ),
-
-                      // child: SvgPicture.asset(
-                      //   'assets/svg/calender.svg',
-                      //   semanticsLabel: 'contoh',
-                      //   fit: BoxFit.cover,
-                      //   colorFilter:
-                      //       ColorFilter.mode(Colors.black, BlendMode.srcIn),
-                      // ),
                       SizedBox(width: 2),
                       Text(
                         tanggal + " " + bulan + " " + tahun,

@@ -2,6 +2,8 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lelang_fb/app/utils/space.dart';
+import 'package:lelang_fb/core/constants/color.dart';
+import '../../../routes/app_pages.dart';
 import '../../../utils/event_card.dart';
 import '../../../utils/items_card.dart';
 import '../controllers/home_controller.dart';
@@ -73,13 +75,11 @@ class Home extends GetView<HomeController> {
                         builder: (BuildContext context) {
                           return Container(
                             clipBehavior: Clip.hardEdge,
-                            height: 100,
-                            width: double.infinity,
                             decoration: BoxDecoration(
-                              color: const Color.fromARGB(255, 0, 255, 76),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Image.asset(
+                              width: double.infinity,
                               controller.listNew[index],
                               fit: BoxFit.cover,
                             ),
@@ -141,7 +141,10 @@ class Home extends GetView<HomeController> {
                 children: [
                   Text(
                     "Nearest Auction Schedule",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   GestureDetector(
                     onTap: () {
@@ -221,7 +224,7 @@ class Home extends GetView<HomeController> {
                           "Currently Trending",
                           style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 20,
+                              fontSize: 18,
                               color: Colors.white),
                         ),
                         Text(
@@ -241,6 +244,43 @@ class Home extends GetView<HomeController> {
                     height: 270,
                     child: buildItemsList(controller.items),
                   ),
+                  SizedBox(
+                    height: 5,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Space(height: 10, width: 0),
+          SliverToBoxAdapter(
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(color: Colors.white),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          "Other Items",
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.black),
+                        ),
+                        Text(
+                          "See all",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.hijauMuda,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  buildItemsOther(controller.items),
                 ],
               ),
             ),
@@ -274,19 +314,65 @@ Widget buildItemsList(List<Map<String, String>> items) {
     itemCount: items.length,
     itemBuilder: (context, index) {
       final item = items[index];
-      return ItemsCard(
-        grade: item["grade"]!,
-        imageURL: item["imageURL"]!,
-        judul: item["judul"]!,
-        tahunMobil: item["tahunMobil"]!,
-        tipe: item["tipe"]!,
-        platNomor: item["platNomor"]!,
-        harga: item["harga"]!,
-        tanggal: item["tanggal"]!,
-        bulan: item["bulan"]!,
-        tahun: item["tahun"]!,
-        lokasi: item["lokasi"]!,
-        jamBidding: item["jamBidding"]!,
+      return GestureDetector(
+        onTap: () {
+          Get.toNamed(
+            Routes.DETAIL_ITEM,
+            arguments: item,
+          );
+        },
+        child: ItemsCard(
+          grade: item["grade"]!,
+          imageURL: item["imageURL"]!,
+          judul: item["judul"]!,
+          tahunMobil: item["tahunMobil"]!,
+          tipe: item["tipe"]!,
+          platNomor: item["platNomor"]!,
+          harga: item["harga"]!,
+          tanggal: item["tanggal"]!,
+          bulan: item["bulan"]!,
+          tahun: item["tahun"]!,
+          lokasi: item["lokasi"]!,
+          jamBidding: item["jamBidding"]!,
+        ),
+      );
+    },
+  );
+}
+
+Widget buildItemsOther(List<Map<String, String>> items) {
+  return GridView.builder(
+    padding: EdgeInsets.only(top: 10),
+    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+      crossAxisCount: 2,
+      mainAxisExtent: 270,
+    ),
+    shrinkWrap: true,
+    physics: NeverScrollableScrollPhysics(),
+    itemCount: items.length,
+    itemBuilder: (contex, index) {
+      final item = items[index];
+      return GestureDetector(
+        onTap: () {
+          Get.toNamed(
+            Routes.DETAIL_ITEM,
+            arguments: item,
+          );
+        },
+        child: ItemsCard(
+          grade: item["grade"]!,
+          imageURL: item["imageURL"]!,
+          judul: item["judul"]!,
+          tahunMobil: item["tahunMobil"]!,
+          tipe: item["tipe"]!,
+          platNomor: item["platNomor"]!,
+          harga: item["harga"]!,
+          tanggal: item["tanggal"]!,
+          bulan: item["bulan"]!,
+          tahun: item["tahun"]!,
+          lokasi: item["lokasi"]!,
+          jamBidding: item["jamBidding"]!,
+        ),
       );
     },
   );
