@@ -264,14 +264,18 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       "imageURL": "assets/logo/logo_lifestyle.png"
     },
   ];
-  final List<Map<String, String>> items = [
+  final List<Map<String, dynamic>> items = [
     {
       'grade': 'A',
-      'imageURL': 'assets/logo/yaris.png',
+      'imageURL': [
+        'assets/logo/yaris.png',
+        'assets/logo/yaris.png',
+      ],
       'judul': 'Toyota Avanza',
       'tahunMobil': '2021',
       'tipe': 'MT',
       'platNomor': 'B 1234 ABC',
+      'mesinCC': '2.0',
       'harga': 'Rp 200.000.000',
       'tanggal': '16',
       'bulan': 'Nov',
@@ -282,11 +286,15 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
     },
     {
       'grade': 'B',
-      'imageURL': 'assets/logo/bmw.png',
+      'imageURL': [
+        'assets/logo/bmw.png',
+        'assets/logo/bmw.png',
+      ],
       'judul': 'Honda Civic',
       'tahunMobil': '2019',
       'tipe': 'MN',
       'platNomor': 'D 5678 DEF',
+      'mesinCC': '2.5',
       'harga': 'Rp 300.000.000',
       'tanggal': '20',
       'bulan': 'Nov',
@@ -297,11 +305,12 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
     },
     {
       'grade': 'D',
-      'imageURL': 'assets/logo/mobil.png',
+      'imageURL': ['assets/logo/mobil.png'],
       'judul': 'Honda Civic',
       'tahunMobil': '2019',
       'tipe': 'MN',
       'platNomor': 'D 5678 DEF',
+      'mesinCC': '1.0',
       'harga': 'Rp 300.000.000',
       'tanggal': '20',
       'bulan': 'Nov',

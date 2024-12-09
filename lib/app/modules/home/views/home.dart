@@ -19,7 +19,6 @@ class Home extends GetView<HomeController> {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // SliverAppBar to hide on scroll
           SliverAppBar(
               pinned: false,
               title: TextField(
@@ -308,7 +307,7 @@ Widget buildEventList(List<Map<String, String>> events) {
   );
 }
 
-Widget buildItemsList(List<Map<String, String>> items) {
+Widget buildItemsList(List<Map<String, dynamic>> items) {
   return ListView.builder(
     scrollDirection: Axis.horizontal,
     itemCount: items.length,
@@ -323,7 +322,7 @@ Widget buildItemsList(List<Map<String, String>> items) {
         },
         child: ItemsCard(
           grade: item["grade"]!,
-          imageURL: item["imageURL"]!,
+          imageURL: item["imageURL"][0]!,
           judul: item["judul"]!,
           tahunMobil: item["tahunMobil"]!,
           tipe: item["tipe"]!,
@@ -334,13 +333,14 @@ Widget buildItemsList(List<Map<String, String>> items) {
           tahun: item["tahun"]!,
           lokasi: item["lokasi"]!,
           jamBidding: item["jamBidding"]!,
+          mesinCC: item["jamBidding"]!,
         ),
       );
     },
   );
 }
 
-Widget buildItemsOther(List<Map<String, String>> items) {
+Widget buildItemsOther(List<Map<String, dynamic>> items) {
   return GridView.builder(
     padding: EdgeInsets.only(top: 10),
     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -361,7 +361,7 @@ Widget buildItemsOther(List<Map<String, String>> items) {
         },
         child: ItemsCard(
           grade: item["grade"]!,
-          imageURL: item["imageURL"]!,
+          imageURL: item["imageURL"][0]!,
           judul: item["judul"]!,
           tahunMobil: item["tahunMobil"]!,
           tipe: item["tipe"]!,
@@ -372,6 +372,7 @@ Widget buildItemsOther(List<Map<String, String>> items) {
           tahun: item["tahun"]!,
           lokasi: item["lokasi"]!,
           jamBidding: item["jamBidding"]!,
+          mesinCC: item["mesinCC"]!,
         ),
       );
     },

@@ -14,6 +14,7 @@ class ItemsCard extends StatelessWidget {
   final String lokasi;
   final String jamBidding;
   final String? deskripsi;
+  final String mesinCC;
 
   const ItemsCard({
     required this.grade,
@@ -28,6 +29,7 @@ class ItemsCard extends StatelessWidget {
     required this.tahun,
     required this.lokasi,
     required this.jamBidding,
+    required this.mesinCC,
     this.deskripsi = 'Deskripsi tidak tersedia',
     super.key,
   });

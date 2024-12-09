@@ -58,8 +58,30 @@ class $AssetsImagesGen {
   /// File path: assets/images/banner1.png
   AssetGenImage get banner1 => const AssetGenImage('assets/images/banner1.png');
 
+  /// File path: assets/images/bensin.png
+  AssetGenImage get bensin => const AssetGenImage('assets/images/bensin.png');
+
+  /// File path: assets/images/kilometer.png
+  AssetGenImage get kilometer =>
+      const AssetGenImage('assets/images/kilometer.png');
+
+  /// File path: assets/images/mesin.png
+  AssetGenImage get mesin => const AssetGenImage('assets/images/mesin.png');
+
+  /// File path: assets/images/performance 1.png
+  AssetGenImage get performance1 =>
+      const AssetGenImage('assets/images/performance 1.png');
+
+  /// File path: assets/images/transmission 1.png
+  AssetGenImage get transmission1 =>
+      const AssetGenImage('assets/images/transmission 1.png');
+
+  /// File path: assets/images/warna.png
+  AssetGenImage get warna => const AssetGenImage('assets/images/warna.png');
+
   /// List of all assets
-  List<AssetGenImage> get values => [banner1];
+  List<AssetGenImage> get values =>
+      [banner1, bensin, kilometer, mesin, performance1, transmission1, warna];
 }
 
 class $AssetsLogoGen {
@@ -156,6 +178,14 @@ class $AssetsSvgGen {
   /// File path: assets/svg/mobil.svg
   SvgGenImage get mobil => const SvgGenImage('assets/svg/mobil.svg');
 
+  /// File path: assets/svg/performance_convert.svg
+  SvgGenImage get performanceConvert =>
+      const SvgGenImage('assets/svg/performance_convert.svg');
+
+  /// File path: assets/svg/performance_terbaru.svg
+  SvgGenImage get performanceTerbaru =>
+      const SvgGenImage('assets/svg/performance_terbaru.svg');
+
   /// List of all assets
   List<SvgGenImage> get values => [
         calender,
@@ -165,7 +195,9 @@ class $AssetsSvgGen {
         logoMotor,
         logoUnpak,
         logoWhite,
-        mobil
+        mobil,
+        performanceConvert,
+        performanceTerbaru
       ];
 }
 
