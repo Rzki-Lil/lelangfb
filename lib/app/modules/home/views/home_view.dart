@@ -10,8 +10,7 @@ class HomeView extends GetView<HomeController> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Obx(
-        () =>
-            controller.widgetOptions.elementAt(controller.selectedIndex.value),
+        () => controller.widgetOptions.elementAt(controller.selectedPage.value),
       ),
       bottomNavigationBar: Obx(() {
         return Stack(
@@ -37,10 +36,10 @@ class HomeView extends GetView<HomeController> {
                 backgroundColor: Colors.green,
                 selectedItemColor: Colors.white,
                 unselectedItemColor: Colors.white60,
-                currentIndex: controller.selectedIndex.value,
+                currentIndex: controller.selectedPage.value,
                 onTap: (index) {
                   if (index != 2) {
-                    controller.selectedIndex.value = index;
+                    controller.selectedPage.value = index;
                   }
                   if (index == 1) {
                     FocusScope.of(context).requestFocus(controller.search);
@@ -75,7 +74,7 @@ class HomeView extends GetView<HomeController> {
               left: MediaQuery.of(context).size.width / 2 - 30,
               child: FloatingActionButton(
                 onPressed: () {
-                  controller.selectedIndex.value = 2; // Navigate to Add page
+                  controller.selectedPage.value = 2; // Navigate to Add page
                 },
                 elevation: 0,
                 backgroundColor: Colors.transparent,

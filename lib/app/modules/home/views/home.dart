@@ -13,6 +13,8 @@ class Home extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.put(HomeController());
+
     final CarouselSliderController carouselController =
         CarouselSliderController();
 

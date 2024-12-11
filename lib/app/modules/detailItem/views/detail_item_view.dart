@@ -258,8 +258,7 @@ class DetailItemView extends GetView<DetailItemController> {
                 ),
               ),
               Row(
-                children: [
-                ],
+                children: [],
               )
             ],
           ),

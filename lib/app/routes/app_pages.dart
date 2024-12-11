@@ -1,5 +1,7 @@
 import 'package:get/get.dart';
 
+import '../modules/addItem/bindings/add_item_binding.dart';
+import '../modules/addItem/views/add_item_view.dart';
 import '../modules/detailItem/bindings/detail_item_binding.dart';
 import '../modules/detailItem/views/detail_item_view.dart';
 import '../modules/emailVerification/bindings/email_verification_binding.dart';
@@ -57,6 +59,11 @@ class AppPages {
       name: _Paths.DETAIL_ITEM,
       page: () => const DetailItemView(),
       binding: DetailItemBinding(),
+    ),
+    GetPage(
+      name: _Paths.ADD_ITEM,
+      page: () => const AddItemView(),
+      binding: AddItemBinding(),
     ),
   ];
 }

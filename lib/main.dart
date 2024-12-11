@@ -5,8 +5,6 @@ import 'package:lelang_fb/app/controllers/auth_controller.dart';
 import 'package:lelang_fb/app/utils/app_theme.dart';
 import 'app/routes/app_pages.dart';
 
-
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();

@@ -5,10 +5,13 @@ import 'package:lelang_fb/app/modules/home/views/home.dart';
 import 'package:lelang_fb/app/modules/home/views/profile_view.dart';
 import 'package:lelang_fb/core/assets/assets.gen.dart';
 
+import '../../addItem/views/add_item_view.dart';
+
 class HomeController extends GetxController with SingleGetTickerProviderMixin {
-  final selectedIndex = 0.obs;
+  final selectedPage = 0.obs;
   final count = 0.obs;
   final search = FocusNode();
+  final pageController = PageController();
 
   @override
   void onReady() {
@@ -151,10 +154,15 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
   final List<Widget> widgetOptions = [
     Home(),
     Home(),
-    Text("add"),
+    AddItemView(),
     Text("List"),
     ProfileView(),
   ];
+
+  void changePage(int index) {
+    selectedPage.value = index;
+  }
+
   @override
   void onInit() {
     super.onInit();
