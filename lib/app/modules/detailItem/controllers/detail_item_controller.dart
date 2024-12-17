@@ -4,6 +4,7 @@ class DetailItemController extends GetxController {
   //TODO: Implement DetailItemController
   var currentPage = 0.obs;
   var isClicked = false.obs;
+  final isExpanded = false.obs;
 
   final count = 0.obs;
   @override

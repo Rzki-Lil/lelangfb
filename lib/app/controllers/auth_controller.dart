@@ -3,9 +3,11 @@ import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:lelang_fb/app/routes/app_pages.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AuthController extends GetxController {
-  FirebaseAuth auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final isLoggedIn = false.obs;
   final GoogleSignIn _googleSignIn = GoogleSignIn(
     scopes: ['email'],
     signInOption: SignInOption.standard,
@@ -13,8 +15,7 @@ class AuthController extends GetxController {
   RxBool rememberMe = false.obs;
   RxBool isGuest = false.obs;
 
-  // Menggunakan getter untuk stream auth status
-  Stream<User?> get streamAuthStatus => auth.authStateChanges();
+  Stream<User?> get streamAuthStatus => _auth.authStateChanges();
 
   Rx<User?> currentUser = Rx<User?>(null);
   RxBool isEmailVerified = false.obs;
@@ -23,12 +24,23 @@ class AuthController extends GetxController {
   void onInit() {
     super.onInit();
     print("AuthController onInit called");
-    currentUser = Rx<User?>(auth.currentUser);
+    currentUser = Rx<User?>(_auth.currentUser);
     currentUser.bindStream(streamAuthStatus);
     ever(currentUser, _setInitialScreen);
     loadRememberMeStatus();
     checkGuestStatus();
     checkEmailVerificationStatus();
+
+    // Modifikasi auth state listener untuk tidak clear login info
+    _auth.authStateChanges().listen((User? user) {
+      isLoggedIn.value = user != null;
+      if (user != null) {
+        Get.offAllNamed(Routes.HOME);
+      } else {
+        // Hanya navigasi ke login tanpa clear login info
+        Get.offAllNamed(Routes.LOGIN);
+      }
+    });
   }
 
   void _setInitialScreen(User? user) async {
@@ -68,31 +80,78 @@ class AuthController extends GetxController {
       String? email = prefs.getString('email');
       String? password = prefs.getString('password');
       if (email != null && password != null) {
-        if (auth.currentUser == null) {
+        if (_auth.currentUser == null) {
           login(email, password);
         }
       }
     } else {
       clearLoginInfo();
-      if (auth.currentUser != null) {
+      if (_auth.currentUser != null) {
         logout();
       }
     }
   }
 
+  Future<void> createOrUpdateUserData(User user) async {
+    try {
+      final userRef =
+          FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+      // Check if user document exists
+      final docSnapshot = await userRef.get();
+
+      if (!docSnapshot.exists) {
+        // Create new user document if it doesn't exist
+        await userRef.set({
+          'uid': user.uid,
+          'email': user.email,
+          'displayName': user.displayName ?? 'User',
+          'photoURL': user.photoURL,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'phoneNumber': user.phoneNumber,
+          'isVerified': user.emailVerified,
+          'provider': user.providerData.map((e) => e.providerId).toList(),
+          // Additional user data
+          'bio': '',
+          'location': '',
+          'totalItems': 0,
+          'rating': 0.0,
+          'ratingCount': 0,
+          'followers': 0,
+          'following': 0,
+        });
+      } else {
+        // Update existing user document
+        await userRef.update({
+          'email': user.email,
+          'displayName': user.displayName ?? docSnapshot.get('displayName'),
+          'photoURL': user.photoURL ?? docSnapshot.get('photoURL'),
+          'updatedAt': FieldValue.serverTimestamp(),
+          'phoneNumber': user.phoneNumber,
+          'isVerified': user.emailVerified,
+          'provider': user.providerData.map((e) => e.providerId).toList(),
+        });
+      }
+    } catch (e) {
+      print('Error creating/updating user data: $e');
+    }
+  }
+
   void login(String email, String password) async {
     try {
-      UserCredential userCredential = await auth.signInWithEmailAndPassword(
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
       if (userCredential.user != null) {
+        // Create or update user document after successful login
+        await createOrUpdateUserData(userCredential.user!);
+
         printUserInfo(userCredential.user!);
         if (userCredential.user!.emailVerified) {
           if (rememberMe.value) {
             saveLoginInfo(email, password);
-          } else {
-            clearLoginInfo();
           }
           navigateToHome();
           Get.snackbar(
@@ -143,12 +202,15 @@ class AuthController extends GetxController {
 
       try {
         final UserCredential userCredential =
-            await auth.signInWithCredential(credential);
+            await _auth.signInWithCredential(credential);
         final User? user = userCredential.user;
 
         if (user != null) {
-          printUserInfo(user); 
-          clearLoginInfo();
+          // Create or update user document after successful Google sign in
+          await createOrUpdateUserData(user);
+
+          printUserInfo(user);
+          // Hapus clearLoginInfo di sini
           rememberMe.value = false;
           navigateToHome();
           Get.snackbar('Berhasil', 'Masuk sebagai ${user.displayName}');
@@ -176,7 +238,7 @@ class AuthController extends GetxController {
         idToken: googleAuth.idToken,
       );
 
-      await auth.currentUser?.linkWithCredential(credential);
+      await _auth.currentUser?.linkWithCredential(credential);
       Get.snackbar('Berhasil', 'Akun Google berhasil dihubungkan');
       navigateToHome();
     } catch (e) {
@@ -187,7 +249,7 @@ class AuthController extends GetxController {
 
   void loginAsGuest() async {
     try {
-      await auth.signInAnonymously();
+      await _auth.signInAnonymously();
       isGuest.value = true;
       navigateToHome();
     } catch (e) {
@@ -196,11 +258,11 @@ class AuthController extends GetxController {
   }
 
   void checkGuestStatus() {
-    isGuest.value = auth.currentUser?.isAnonymous ?? false;
+    isGuest.value = _auth.currentUser?.isAnonymous ?? false;
   }
 
   void logout() async {
-    await auth.signOut();
+    await _auth.signOut();
     clearLoginInfo();
     rememberMe.value = false;
     isGuest.value = false;
@@ -240,12 +302,12 @@ class AuthController extends GetxController {
     print('Is Anonymous: ${user.isAnonymous}');
     print(
         'Provider ID: ${user.providerData.map((e) => e.providerId).join(', ')}');
-    print('Photo URL: ${user.photoURL}'); 
+    print('Photo URL: ${user.photoURL}');
     print('====================');
   }
 
   Future<void> checkEmailVerificationStatus() async {
-    User? user = auth.currentUser;
+    User? user = _auth.currentUser;
     if (user != null && !user.isAnonymous) {
       await user.reload();
       isEmailVerified.value = user.emailVerified;

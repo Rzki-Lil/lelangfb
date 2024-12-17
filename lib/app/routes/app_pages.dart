@@ -19,19 +19,32 @@ import '../modules/splash/views/splash_view.dart';
 
 part 'app_routes.dart';
 
+abstract class Routes {
+  Routes._(); // Private constructor to prevent instantiation
+
+  static const HOME = _Paths.HOME;
+  static const LOGIN = _Paths.LOGIN;
+  static const SPLASH = _Paths.SPLASH;
+  static const SIGNUP = _Paths.SIGNUP;
+  static const EMAIL_VERIFICATION = _Paths.EMAIL_VERIFICATION;
+  static const FORGOT_PASSWORD = _Paths.FORGOT_PASSWORD;
+  static const DETAIL_ITEM = _Paths.DETAIL_ITEM;
+  static const ADD_ITEM = _Paths.ADD_ITEM;
+}
+
 class AppPages {
   AppPages._();
 
-  static const INITIAL = Routes.HOME;
+  static const INITIAL = Routes.SPLASH;
 
   static final routes = [
     GetPage(
-      name: _Paths.SPLASH,
+      name: Routes.SPLASH,
       page: () => const SplashView(),
       binding: SplashBinding(),
     ),
     GetPage(
-      name: _Paths.HOME,
+      name: Routes.HOME,
       page: () => const HomeView(),
       binding: HomeBinding(),
     ),
@@ -41,7 +54,7 @@ class AppPages {
       binding: SignupBinding(),
     ),
     GetPage(
-      name: _Paths.LOGIN,
+      name: Routes.LOGIN,
       page: () => LoginView(),
       binding: LoginBinding(),
     ),
@@ -56,14 +69,15 @@ class AppPages {
       binding: ForgotPasswordBinding(),
     ),
     GetPage(
-      name: _Paths.DETAIL_ITEM,
+      name: Routes.DETAIL_ITEM,
       page: () => const DetailItemView(),
       binding: DetailItemBinding(),
     ),
     GetPage(
-      name: _Paths.ADD_ITEM,
+      name: Routes.ADD_ITEM,
       page: () => const AddItemView(),
       binding: AddItemBinding(),
+      transition: Transition.fadeIn,
     ),
   ];
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/constants/color.dart';
 
 class CustomTextField extends StatefulWidget {
@@ -6,25 +7,40 @@ class CustomTextField extends StatefulWidget {
   final String labelText;
   final bool isPassword;
   final Icon? prefixIcon;
+  final Widget? prefix;
   final double borderRadius;
   final TextInputType keyboardType;
   final double? height;
   final ValueChanged<String>? onChanged;
   final FocusNode? focusNode;
   final ValueChanged<String>? onSubmitted;
+  final int? maxLength;
+  final int? maxLines;
+  final TextAlignVertical? textAlignVertical;
+  final bool expands;
+  final List<TextInputFormatter>? inputFormatters;
+
   const CustomTextField({
     Key? key,
     required this.controller,
     required this.labelText,
     this.isPassword = false,
     this.prefixIcon,
+    this.prefix,
     this.borderRadius = 4.0,
     this.keyboardType = TextInputType.text,
     this.height,
     this.onChanged,
     this.focusNode,
     this.onSubmitted,
-  }) : super(key: key);
+    this.maxLength,
+    this.maxLines,
+    this.textAlignVertical,
+    this.expands = false,
+    this.inputFormatters,
+  })  : assert(!isPassword || maxLines == null && !expands,
+            'Password fields cannot be multiline'),
+        super(key: key);
 
   @override
   _CustomTextFieldState createState() => _CustomTextFieldState();
@@ -58,6 +74,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
   Widget build(BuildContext context) {
     final Color activeColor = AppColors.hijauTua;
     final Color inactiveColor = Colors.grey;
+    final bool hasValue = widget.controller.text.isNotEmpty;
 
     return SizedBox(
       height: widget.height,
@@ -68,6 +85,11 @@ class _CustomTextFieldState extends State<CustomTextField> {
         focusNode: _focusNode,
         onFieldSubmitted: widget.onSubmitted,
         onChanged: widget.onChanged,
+        maxLength: widget.maxLength,
+        maxLines: widget.isPassword ? 1 : widget.maxLines,
+        expands: widget.expands,
+        textAlignVertical: widget.textAlignVertical,
+        inputFormatters: widget.inputFormatters,
         style: TextStyle(
           color: AppColors.hijauTua,
           fontFamily: 'MotivaSans',
@@ -77,18 +99,19 @@ class _CustomTextFieldState extends State<CustomTextField> {
         decoration: InputDecoration(
           labelText: widget.labelText,
           labelStyle: TextStyle(
-            color: _isFocused ? activeColor : inactiveColor,
+            color: hasValue || _isFocused ? activeColor : inactiveColor,
             fontFamily: 'MotivaSans',
             fontSize: 15,
           ),
           prefixIcon: widget.prefixIcon != null
               ? IconTheme(
                   data: IconThemeData(
-                    color: _isFocused ? activeColor : inactiveColor,
+                    color: hasValue || _isFocused ? activeColor : inactiveColor,
                   ),
                   child: widget.prefixIcon!,
                 )
               : null,
+          prefix: widget.prefix,
           suffixIcon: widget.isPassword
               ? IconButton(
                   icon: Icon(
@@ -108,7 +131,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(widget.borderRadius),
-            borderSide: BorderSide(color: inactiveColor),
+            borderSide: BorderSide(
+              color: hasValue ? activeColor : inactiveColor,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(widget.borderRadius),
