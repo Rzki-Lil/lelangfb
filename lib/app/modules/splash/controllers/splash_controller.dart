@@ -23,7 +23,7 @@ class SplashController extends GetxController {
 
     if (authController.currentUser.value == null) {
       print("User is null, navigating to login");
-      Get.offAllNamed(Routes.LOGIN);
+      Get.offAllNamed(Routes.ONBOARDING);
     } else {
       print("User is not null");
       if (authController.isEmailVerified.value ||

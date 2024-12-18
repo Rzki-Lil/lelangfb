@@ -3,12 +3,14 @@ import 'package:get/get.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:lelang_fb/app/modules/home/views/home.dart';
-import 'package:lelang_fb/app/modules/home/views/profile_view.dart';
+import 'package:lelang_fb/app/modules/list_favorite/views/list_favorite_view.dart';
+import 'package:lelang_fb/app/modules/search/views/search_view.dart';
 import 'package:lelang_fb/core/assets/assets.gen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import '../../addItem/views/add_item_view.dart';
 import '../../../modules/addItem/controllers/add_item_controller.dart';
+import '../../profile/views/profile_view.dart';
 
 class HomeController extends GetxController with SingleGetTickerProviderMixin {
   final selectedPage = 0.obs;
@@ -31,109 +33,31 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
     super.onReady();
   }
 
-  final double width = 70;
-  List<Widget> get menuItems {
-    return [
-      Column(
-        children: [
-          Container(
-            width: width,
-            height: width,
-            decoration: BoxDecoration(
-              color: Colors.lightBlue.shade100,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Assets.logo.logoMobil.image(),
-          ),
-          SizedBox(height: 8),
-          Text(
-            "Car",
-            style: TextStyle(
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-      Column(
-        children: [
-          Container(
-            width: width,
-            height: width,
-            decoration: BoxDecoration(
-              color: Colors.green.shade100,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Image.asset(Assets.logo.logoMotor.path),
-          ),
-          SizedBox(height: 8),
-          Text(
-            "Motorcycle",
-            style: TextStyle(
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-      Column(
-        children: [
-          Container(
-              width: width,
-              height: width,
-              decoration: BoxDecoration(
-                color: Colors.teal.shade100,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Image.asset(Assets.logo.logoLifestyle.path)),
-          SizedBox(height: 8),
-          Text(
-            "Lifestyle",
-            style: TextStyle(
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-      Column(
-        children: [
-          Container(
-            width: width,
-            height: width,
-            decoration: BoxDecoration(
-              color: Colors.orange.shade100,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Image.asset(Assets.logo.logoAuction.path),
-          ),
-          SizedBox(height: 8),
-          Text(
-            "Auction",
-            style: TextStyle(
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    ];
-  }
-
   var currentPage = 0.obs;
   Timer? _timer;
   Timer? _statusCheckTimer;
 
-  final listNew = [
-    Assets.images.banner1.path,
+  final bannerPromo = [
+    Assets.images.banner2.path,
     Assets.logo.logoBanner.path,
   ];
 
   final List<Widget> widgetOptions = [
     Home(),
+    SearchView(),
     AddItemView(),
-    Text("List"),
+    ListFavoriteView(),
     ProfileView(),
   ];
 
   void changePage(int index) {
-    selectedPage.value = index;
+    selectedPage.value = index; // Mengubah nilai page yang dipilih
+
+    if (index == 1) {
+      search.requestFocus();
+    } else {
+      search.unfocus();
+    }
   }
 
   @override

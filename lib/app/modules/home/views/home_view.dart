@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../../core/assets/assets.gen.dart';
 import '../controllers/home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -41,31 +42,22 @@ class HomeView extends GetView<HomeController> {
                   if (index != 2) {
                     controller.selectedPage.value = index;
                   }
-                  if (index == 1) {
-                    FocusScope.of(context).requestFocus(controller.search);
-                  }
                 },
-                items: const <BottomNavigationBarItem>[
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.home),
-                    label: 'Home',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.search),
-                    label: 'Search',
-                  ),
+                items: <BottomNavigationBarItem>[
+                  bottomNavbaritem(
+                      Assets.icons.home.path, 'Home', Assets.icons.home.path),
+                  bottomNavbaritem(Assets.icons.search.path, 'Search',
+                      Assets.icons.searchfilled.path),
                   BottomNavigationBarItem(
                     icon: SizedBox.shrink(), // Empty for floating button
                     label: '',
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.favorite_outline),
-                    label: 'List',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: Icon(Icons.person_outline),
-                    label: 'Profile',
-                  ),
+                      icon: Icon(Icons.favorite_outline),
+                      label: 'List',
+                      activeIcon: Icon(Icons.favorite_sharp)),
+                  bottomNavbaritem(Assets.icons.profileoutline.path, "Profile",
+                      Assets.icons.profilefilled.path)
                 ],
               ),
             ),
@@ -88,6 +80,22 @@ class HomeView extends GetView<HomeController> {
           ],
         );
       }),
+    );
+  }
+
+  BottomNavigationBarItem bottomNavbaritem(
+      String asset, String label, String activeIcon) {
+    return BottomNavigationBarItem(
+      icon: Image.asset(
+        asset,
+        width: 20,
+        color: Colors.white60,
+      ),
+      label: label,
+      activeIcon: Image.asset(
+        activeIcon,
+        width: 20,
+      ),
     );
   }
 }

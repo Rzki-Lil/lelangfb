@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lelang_fb/core/constants/color.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import '../../../../core/assets/assets.gen.dart';
 import '../../../services/location_service.dart';
 import '../../../utils/input_decorations.dart';
 
 import '../../../utils/buttons.dart';
 import '../../../utils/custom_text_field.dart';
+import '../../../utils/text.dart';
 import '../../home/controllers/home_controller.dart';
+import '../../home/views/home.dart';
 import '../controllers/add_item_controller.dart';
 import 'package:flutter/services.dart';
 
@@ -16,6 +19,7 @@ class AddItemView extends GetView<AddItemController> {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(AddItemController());
+    final controllerHome = Get.put(HomeController());
 
     // ever(Get.reference, (_) {
     //   if (!Get.isRegistered<AddItemController>()) {
@@ -24,14 +28,12 @@ class AddItemView extends GetView<AddItemController> {
     // });
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add Auction Item'),
-        leading: IconButton(
-          onPressed: () => Get.back(),
-          icon: Icon(Icons.arrow_back),
-        ),
-        centerTitle: true,
-      ),
+      appBar: PreferredSize(
+          preferredSize: Size(double.infinity, 50),
+          child: appbarSearch(
+            controllerHome: controllerHome,
+            widget: true,
+          )),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -758,6 +760,81 @@ class AddItemView extends GetView<AddItemController> {
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class appbarSearch extends StatelessWidget {
+  bool? widget;
+  appbarSearch({
+    super.key,
+    required this.controllerHome,
+    this.widget,
+  });
+
+  final HomeController controllerHome;
+
+  @override
+  Widget build(BuildContext context) {
+    final controllerHome = Get.put(HomeController());
+
+    return AppBar(
+      title: widget == true
+          ? GestureDetector(
+              onTap: () {
+                controllerHome.changePage(1);
+              },
+              child: Card(
+                margin: EdgeInsets.only(right: 10),
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
+                  side: BorderSide(color: Colors.grey),
+                ),
+                child: Container(
+                  height: 48,
+                  width: double.infinity,
+                  child: Row(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Assets.icons.search
+                            .image(width: 30, color: Colors.grey),
+                      ),
+                      TextCust(
+                        text: "Search",
+                        color: Colors.grey,
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          : titleTextFieldAppbar(
+              controller: controllerHome,
+            ),
+      leadingWidth: 70,
+      toolbarHeight: 50,
+      leading: Padding(
+        padding: EdgeInsets.only(left: 20, top: 4, bottom: 2),
+        child: Container(
+          padding: EdgeInsets.only(left: 5),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: AppColors.grey,
+          ),
+          child: IconButton(
+            icon: Icon(Icons.arrow_back_ios),
+            color: Colors.white,
+            onPressed: () {
+              final homeController = Get.find<HomeController>();
+              homeController.changePage(0);
+            },
           ),
         ),
       ),

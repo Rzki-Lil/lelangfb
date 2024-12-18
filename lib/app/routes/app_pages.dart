@@ -1,4 +1,17 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:lelang_fb/app/modules/list_favorite/bindings/list_favorite_binding.dart';
+import 'package:lelang_fb/app/modules/list_favorite/views/list_favorite_view.dart';
+import 'package:lelang_fb/app/modules/myitems/bindings/myitems_binding.dart';
+import 'package:lelang_fb/app/modules/myitems/views/myitems_view.dart';
+import 'package:lelang_fb/app/modules/notifications/bindings/notifications_binding.dart';
+import 'package:lelang_fb/app/modules/notifications/views/notifications_view.dart';
+import 'package:lelang_fb/app/modules/onboarding/bindings/onboarding_binding.dart';
+import 'package:lelang_fb/app/modules/onboarding/views/onboarding_view.dart';
+import 'package:lelang_fb/app/modules/profile/bindings/profile_binding.dart';
+import 'package:lelang_fb/app/modules/profile/views/profile_view.dart';
+import 'package:lelang_fb/app/modules/search/bindings/search_binding.dart';
+import 'package:lelang_fb/app/modules/search/views/search_view.dart';
 
 import '../modules/addItem/bindings/add_item_binding.dart';
 import '../modules/addItem/views/add_item_view.dart';
@@ -30,6 +43,12 @@ abstract class Routes {
   static const FORGOT_PASSWORD = _Paths.FORGOT_PASSWORD;
   static const DETAIL_ITEM = _Paths.DETAIL_ITEM;
   static const ADD_ITEM = _Paths.ADD_ITEM;
+  static const PROFILE = _Paths.PROFILE;
+  static const NOTIFICATIONS = _Paths.NOTIFICATIONS;
+  static const LIST_FAVORITE = _Paths.LIST_FAVORITE;
+  static const SEARCH = _Paths.SEARCH;
+  static const ONBOARDING = _Paths.ONBOARDING;
+  static const MYITEMS = _Paths.MYITEMS;
 }
 
 class AppPages {
@@ -77,6 +96,42 @@ class AppPages {
       name: Routes.ADD_ITEM,
       page: () => const AddItemView(),
       binding: AddItemBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: Routes.PROFILE,
+      page: () => const ProfileView(),
+      binding: ProfileBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: Routes.NOTIFICATIONS,
+      page: () => const NotifictaionsView(),
+      binding: NotificationsBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: Routes.LIST_FAVORITE,
+      page: () => const ListFavoriteView(),
+      binding: ListFavoriteBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: Routes.SEARCH,
+      page: () => const SearchView(),
+      binding: SearchBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: Routes.ONBOARDING,
+      page: () => OnboardingView(),
+      binding: OnboardingBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: Routes.MYITEMS,
+      page: () => MyitemsView(),
+      binding: MyitemsBinding(),
       transition: Transition.fadeIn,
     ),
   ];

@@ -11,6 +11,12 @@ abstract class routes {
   static const FORGOT_PASSWORD = _Paths.FORGOT_PASSWORD;
   static const DETAIL_ITEM = _Paths.DETAIL_ITEM;
   static const ADD_ITEM = _Paths.ADD_ITEM;
+  static const PROFILE = _Paths.PROFILE;
+  static const LIST_FAVORITE = _Paths.LIST_FAVORITE;
+  static const NOTIFICATIONS = _Paths.NOTIFICATIONS;
+  static const ONBOARDING = _Paths.ONBOARDING;
+  static const SEARCH = _Paths.SEARCH;
+  static const MYITEMS = _Paths.MYITEMS;
 }
 
 abstract class _Paths {
@@ -23,4 +29,10 @@ abstract class _Paths {
   static const FORGOT_PASSWORD = '/forgot-password';
   static const DETAIL_ITEM = '/detail-item';
   static const ADD_ITEM = '/add-item';
+  static const PROFILE = '/profile';
+  static const NOTIFICATIONS = '/notifications';
+  static const LIST_FAVORITE = '/list-favorite';
+  static const SEARCH = '/search';
+  static const ONBOARDING = '/onboarding';
+  static const MYITEMS = '/myitems';
 }

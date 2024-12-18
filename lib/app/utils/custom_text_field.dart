@@ -19,6 +19,7 @@ class CustomTextField extends StatefulWidget {
   final TextAlignVertical? textAlignVertical;
   final bool expands;
   final List<TextInputFormatter>? inputFormatters;
+  final Color? textColor;
 
   const CustomTextField({
     Key? key,
@@ -37,6 +38,7 @@ class CustomTextField extends StatefulWidget {
     this.maxLines,
     this.textAlignVertical,
     this.expands = false,
+    this.textColor,
     this.inputFormatters,
   })  : assert(!isPassword || maxLines == null && !expands,
             'Password fields cannot be multiline'),
@@ -91,7 +93,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
         textAlignVertical: widget.textAlignVertical,
         inputFormatters: widget.inputFormatters,
         style: TextStyle(
-          color: AppColors.hijauTua,
+          color: widget.textColor ?? AppColors.hijauTua,
           fontFamily: 'MotivaSans',
           fontSize: 15,
         ),
