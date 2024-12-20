@@ -38,8 +38,7 @@ class LoginView extends GetView<LoginController> {
                   SizedBox(width: 10),
                   Text(
                     "Lelang ",
-                    style: TextStyle(
-                        fontWeight: FontWeight.w700),
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                   Text(
                     "ID",
@@ -88,8 +87,7 @@ class LoginView extends GetView<LoginController> {
               ),
               Text(
                 "Selamat Datang di Lelang ID",
-                style: TextStyle(
-                     fontSize: 15, color: Colors.grey),
+                style: TextStyle(fontSize: 15, color: Colors.grey),
               ),
               SizedBox(height: 24),
               CustomTextField(
@@ -98,8 +96,9 @@ class LoginView extends GetView<LoginController> {
                 prefixIcon: Icon(Icons.email),
                 keyboardType: TextInputType.emailAddress,
                 height: 50,
-                focusNode: emailFocus, 
-                onSubmitted: (_) => FocusScope.of(context).requestFocus(passwordFocus), 
+                focusNode: emailFocus,
+                onSubmitted: (_) =>
+                    FocusScope.of(context).requestFocus(passwordFocus),
               ),
               SizedBox(height: 16),
               CustomTextField(
@@ -108,8 +107,8 @@ class LoginView extends GetView<LoginController> {
                 isPassword: true,
                 prefixIcon: Icon(Icons.lock),
                 height: 50,
-                focusNode: passwordFocus, 
-                onSubmitted: (_) => _handleLogin(context), 
+                focusNode: passwordFocus,
+                onSubmitted: (_) => _handleLogin(context),
               ),
               SizedBox(height: 10),
               Row(
@@ -118,17 +117,18 @@ class LoginView extends GetView<LoginController> {
                   Transform.translate(
                     offset: Offset(-10, 0),
                     child: Obx(() => Checkbox(
-                      value: authC.rememberMe.value,
-                      onChanged: (value) {
-                        authC.rememberMe.value = value!;
-                        if (!value) {
-                          authC.clearLoginInfo();
-                        }
-                      },
-                      activeColor: AppColors.hijauTua,
-                      side: BorderSide(color: Colors.grey),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    )),
+                          value: authC.rememberMe.value,
+                          onChanged: (value) {
+                            authC.rememberMe.value = value!;
+                            if (!value) {
+                              authC.clearLoginInfo();
+                            }
+                          },
+                          activeColor: AppColors.hijauTua,
+                          side: BorderSide(color: Colors.grey),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                        )),
                   ),
                   Transform.translate(
                     offset: Offset(-40, 0),
@@ -156,7 +156,7 @@ class LoginView extends GetView<LoginController> {
               ),
               SizedBox(height: 16),
               Button.filled(
-                onPressed: () => _handleLogin(context), 
+                onPressed: () => _handleLogin(context),
                 label: 'Log in',
                 color: AppColors.hijauTua,
                 width: double.infinity,
@@ -233,7 +233,8 @@ class LoginView extends GetView<LoginController> {
                       fontSize: 17,
                       textColor: Colors.black,
                       borderColor: Colors.grey,
-                      icon: Icon(Icons.person_outline_rounded, color: Colors.black, size: 30),
+                      icon: Icon(Icons.person_outline_rounded,
+                          color: Colors.black, size: 30),
                       width: double.infinity,
                     ),
                   ),
@@ -251,7 +252,6 @@ class LoginView extends GetView<LoginController> {
     emailC.text = loginInfo['email'] ?? '';
     passwordC.text = loginInfo['password'] ?? '';
   }
-
 
   void _handleLogin(BuildContext context) {
     FocusScope.of(context).unfocus();

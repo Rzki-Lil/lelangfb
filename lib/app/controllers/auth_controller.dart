@@ -15,6 +15,9 @@ class AuthController extends GetxController {
   RxBool rememberMe = false.obs;
   RxBool isGuest = false.obs;
 
+  // Tambahkan storage key untuk guest ID
+  static const String GUEST_ID_KEY = 'guest_user_id';
+
   Stream<User?> get streamAuthStatus => _auth.authStateChanges();
 
   Rx<User?> currentUser = Rx<User?>(null);
@@ -145,7 +148,6 @@ class AuthController extends GetxController {
         password: password,
       );
       if (userCredential.user != null) {
-        // Create or update user document after successful login
         await createOrUpdateUserData(userCredential.user!);
 
         printUserInfo(userCredential.user!);
@@ -247,13 +249,45 @@ class AuthController extends GetxController {
     }
   }
 
-  void loginAsGuest() async {
+  Future<void> loginAsGuest() async {
     try {
-      await _auth.signInAnonymously();
+      // Check if we already have a guest account stored
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String? existingGuestId = prefs.getString(GUEST_ID_KEY);
+
+      if (existingGuestId != null) {
+        try {
+          await _auth.signInAnonymously();
+          User? currentUser = _auth.currentUser;
+
+          if (currentUser?.uid != existingGuestId) {
+            await currentUser?.delete();
+            await prefs.remove(GUEST_ID_KEY);
+            await _createNewGuestAccount();
+          }
+        } catch (e) {
+          print("Error signing in with existing guest account: $e");
+          await _createNewGuestAccount();
+        }
+      } else {
+        await _createNewGuestAccount();
+      }
+
       isGuest.value = true;
       navigateToHome();
     } catch (e) {
+      print("Error in loginAsGuest: $e");
       Get.snackbar('Error', 'Gagal masuk sebagai tamu');
+    }
+  }
+
+  Future<void> _createNewGuestAccount() async {
+    final userCredential = await _auth.signInAnonymously();
+    if (userCredential.user != null) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString(GUEST_ID_KEY, userCredential.user!.uid);
+
+      await createOrUpdateUserData(userCredential.user!);
     }
   }
 
@@ -261,7 +295,12 @@ class AuthController extends GetxController {
     isGuest.value = _auth.currentUser?.isAnonymous ?? false;
   }
 
+  @override
   void logout() async {
+    if (isGuest.value) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove(GUEST_ID_KEY);
+    }
     await _auth.signOut();
     clearLoginInfo();
     rememberMe.value = false;
@@ -282,7 +321,7 @@ class AuthController extends GetxController {
     await prefs.remove('password');
     await prefs.remove('rememberMe');
     rememberMe.value = false;
-    print("Login info cleared"); // Tambahkan log ini
+    print("Login info cleared");
   }
 
   Future<Map<String, String>> getLoginInfo() async {
