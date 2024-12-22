@@ -11,18 +11,12 @@ import 'package:lelang_fb/app/utils/buttons.dart';
 import 'package:lelang_fb/app/utils/custom_text_field.dart';
 
 class LoginView extends GetView<LoginController> {
-  final emailC = TextEditingController();
-  final passwordC = TextEditingController();
   final authC = Get.find<AuthController>();
-
-  final FocusNode emailFocus = FocusNode();
-  final FocusNode passwordFocus = FocusNode();
+  final controller = Get.put(LoginController());
 
   @override
   Widget build(BuildContext context) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      loadLoginInfo();
-    });
+    
 
     return Scaffold(
       appBar: AppBar(
@@ -51,7 +45,7 @@ class LoginView extends GetView<LoginController> {
               ),
               ElevatedButton(
                 onPressed: () {
-                  print("Tombol X ditekan");
+                  controller.onCloseButtonPressed();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.hijauTua,
@@ -59,7 +53,7 @@ class LoginView extends GetView<LoginController> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   minimumSize: Size(40, 35),
-                  padding: EdgeInsets.zero, // Menghilangkan padding default
+                  padding: EdgeInsets.zero,
                 ),
                 child: Icon(Icons.close, color: Colors.white),
               ),
@@ -91,24 +85,24 @@ class LoginView extends GetView<LoginController> {
               ),
               SizedBox(height: 24),
               CustomTextField(
-                controller: emailC,
+                controller: controller.emailC,
                 labelText: 'Email',
                 prefixIcon: Icon(Icons.email),
                 keyboardType: TextInputType.emailAddress,
                 height: 50,
-                focusNode: emailFocus,
-                onSubmitted: (_) =>
-                    FocusScope.of(context).requestFocus(passwordFocus),
+                focusNode: controller.emailFocus,
+                onSubmitted: (_) => FocusScope.of(context)
+                    .requestFocus(controller.passwordFocus),
               ),
               SizedBox(height: 16),
               CustomTextField(
-                controller: passwordC,
+                controller: controller.passwordC,
                 labelText: 'Password',
                 isPassword: true,
                 prefixIcon: Icon(Icons.lock),
                 height: 50,
-                focusNode: passwordFocus,
-                onSubmitted: (_) => _handleLogin(context),
+                focusNode: controller.passwordFocus,
+                onSubmitted: (_) => controller.handleLogin(),
               ),
               SizedBox(height: 10),
               Row(
@@ -118,12 +112,7 @@ class LoginView extends GetView<LoginController> {
                     offset: Offset(-10, 0),
                     child: Obx(() => Checkbox(
                           value: authC.rememberMe.value,
-                          onChanged: (value) {
-                            authC.rememberMe.value = value!;
-                            if (!value) {
-                              authC.clearLoginInfo();
-                            }
-                          },
+                          onChanged: controller.onRememberMeChanged,
                           activeColor: AppColors.hijauTua,
                           side: BorderSide(color: Colors.grey),
                           materialTapTargetSize:
@@ -156,7 +145,7 @@ class LoginView extends GetView<LoginController> {
               ),
               SizedBox(height: 16),
               Button.filled(
-                onPressed: () => _handleLogin(context),
+                onPressed: controller.handleLogin,
                 label: 'Log in',
                 color: AppColors.hijauTua,
                 width: double.infinity,
@@ -175,7 +164,6 @@ class LoginView extends GetView<LoginController> {
                   GestureDetector(
                     onTap: () {
                       Get.toNamed(Routes.SIGNUP);
-                      print("Sign up now diklik");
                     },
                     child: Text(
                       "Sign up now",
@@ -211,9 +199,7 @@ class LoginView extends GetView<LoginController> {
                 children: [
                   Expanded(
                     child: Button.outlined(
-                      onPressed: () {
-                        authC.signInWithGoogle();
-                      },
+                      onPressed: controller.signInWithGoogle,
                       label: 'Google',
                       color: Colors.white,
                       textColor: Colors.black,
@@ -225,9 +211,7 @@ class LoginView extends GetView<LoginController> {
                   SizedBox(width: 16),
                   Expanded(
                     child: Button.outlined(
-                      onPressed: () {
-                        authC.loginAsGuest();
-                      },
+                      onPressed: controller.loginAsGuest,
                       label: 'Guest',
                       color: Colors.white,
                       fontSize: 17,
@@ -245,16 +229,5 @@ class LoginView extends GetView<LoginController> {
         ),
       ),
     );
-  }
-
-  void loadLoginInfo() async {
-    Map<String, String> loginInfo = await authC.getLoginInfo();
-    emailC.text = loginInfo['email'] ?? '';
-    passwordC.text = loginInfo['password'] ?? '';
-  }
-
-  void _handleLogin(BuildContext context) {
-    FocusScope.of(context).unfocus();
-    authC.login(emailC.text, passwordC.text);
   }
 }

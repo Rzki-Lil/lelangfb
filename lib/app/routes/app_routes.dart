@@ -17,6 +17,7 @@ abstract class routes {
   static const ONBOARDING = _Paths.ONBOARDING;
   static const SEARCH = _Paths.SEARCH;
   static const MYITEMS = _Paths.MYITEMS;
+  static const ADMIN = _Paths.ADMIN;
 }
 
 abstract class _Paths {
@@ -35,4 +36,5 @@ abstract class _Paths {
   static const SEARCH = '/search';
   static const ONBOARDING = '/onboarding';
   static const MYITEMS = '/myitems';
+  static const ADMIN = '/admin';
 }

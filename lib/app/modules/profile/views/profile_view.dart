@@ -5,6 +5,7 @@ import 'package:lelang_fb/core/constants/color.dart';
 
 import '../../../../core/assets/assets.gen.dart';
 import '../../../controllers/auth_controller.dart';
+import '../../admin/views/admin_view.dart';
 import '../../notifications/views/notifications_view.dart';
 import '../controllers/profile_controller.dart';
 import 'profile_setting_view.dart';
@@ -88,38 +89,40 @@ class ProfileView extends GetView<ProfileController> {
             ),
             SizedBox(height: 20), // Space between profile and settings menu
             Buttonn(
-              icon: Assets.icons.profile2.path,
+              image: Assets.icons.profile2.path,
               text: 'Profile Settings',
               onPressed: () {
                 Get.to(ProfileSettingView());
               },
             ),
             Buttonn(
-              icon: Assets.icons.items.path,
+              image: Assets.icons.items.path,
               text: 'My Items',
               onPressed: () {
                 Get.to(MyitemsView());
               },
             ),
             Buttonn(
-              icon: Assets.icons.transaction.path,
+              image: Assets.icons.transaction.path,
               text: 'Transaction',
               onPressed: () {
                 Get.to(TransactionView());
               },
             ),
             Buttonn(
-              icon: Assets.icons.security.path,
+              image: Assets.icons.security.path,
               text: 'Security',
               onPressed: () {},
             ),
             Buttonn(
-              icon: Assets.icons.help.path,
-              text: 'Help Center',
-              onPressed: () {},
+              icon: Icons.settings,
+              text: 'Admin',
+              onPressed: () {
+                Get.to(AdminView());
+              },
             ),
             Buttonn(
-              icon: Assets.icons.log.path,
+              image: Assets.icons.log.path,
               text: 'Logout',
               onPressed: () {
                 print("logout");
@@ -170,12 +173,14 @@ class Iconnn extends StatelessWidget {
 }
 
 class Buttonn extends StatelessWidget {
-  String icon;
+  IconData? icon;
+  String? image;
   String text;
   Function()? onPressed;
   Buttonn({
     super.key,
-    required this.icon,
+    this.icon,
+    this.image,
     required this.text,
     required this.onPressed,
   });
@@ -211,11 +216,16 @@ class Buttonn extends StatelessWidget {
                   ),
                   margin: EdgeInsets.symmetric(vertical: 10),
                   padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Image.asset(
-                    icon,
-                    width: 10,
-                    color: AppColors.hijauTua,
-                  ),
+                  child: image != null
+                      ? Image.asset(
+                          image!,
+                          width: 10,
+                          color: AppColors.hijauTua,
+                        )
+                      : Icon(
+                          icon!,
+                          color: AppColors.hijauTua,
+                        ),
                 ),
                 SizedBox(width: 20),
                 Text(

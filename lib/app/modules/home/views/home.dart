@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:io';
+
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:carousel_slider/carousel_controller.dart';
 import 'package:flutter/material.dart';
@@ -110,10 +113,10 @@ class Home extends GetView<HomeController> {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: Image.asset(
-                              width: double.infinity,
-                              controller.bannerPromo[index],
+                            child: Image.file(
+                              File(controller.bannerPromo[index]),
                               fit: BoxFit.fill,
+                              width: double.infinity,
                             ),
                           );
                         },

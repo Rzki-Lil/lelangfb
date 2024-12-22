@@ -72,38 +72,39 @@ class OnboardingView extends GetView<OnboardingController> {
                               ],
                             ),
                           ),
-                          TextButton(
-                            onPressed: () {
-                              if (controller.currentPage.value ==
-                                  controller.pages.length - 1) {
-                                Get.to(LoginView());
-                              } else {
-                                controller.nextPage(controller.pages.length);
-                              }
-                            },
-                            child: Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                  color: AppColors.hijauTua,
-                                  borderRadius: BorderRadius.circular(10)),
-                              padding: EdgeInsets.all(10),
-                              child: Center(
-                                child: Text(
-                                  "Continue",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
                         ],
                       ),
                     );
                   },
                 ),
               ),
+              TextButton(
+                onPressed: () {
+                  if (controller.currentPage.value ==
+                      controller.pages.length - 1) {
+                    Get.to(LoginView());
+                  } else {
+                    controller.nextPage(controller.pages.length);
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                      color: AppColors.hijauTua,
+                      borderRadius: BorderRadius.circular(10)),
+                  padding: EdgeInsets.all(10),
+                  child: Center(
+                    child: Text(
+                      "Continue",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(height: 100),
               SizedBox(
                 height: 50,
                 child: Padding(

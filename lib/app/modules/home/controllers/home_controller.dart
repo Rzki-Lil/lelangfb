@@ -37,10 +37,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
   Timer? _timer;
   Timer? _statusCheckTimer;
 
-  final bannerPromo = [
-    Assets.images.banner2.path,
-    Assets.logo.logoBanner.path,
-  ];
+  var bannerPromo = <String>[].obs;
 
   final List<Widget> widgetOptions = [
     Home(),
@@ -63,6 +60,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
   @override
   void onInit() {
     super.onInit();
+    bannerPromo.add(Assets.images.banner2.path);
 
     initializeDateFormatting('id_ID', null).then((_) {
       print('Date formatting initialized');

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:lelang_fb/app/modules/admin/bindings/admin_binding.dart';
+import 'package:lelang_fb/app/modules/admin/views/admin_view.dart';
 import 'package:lelang_fb/app/modules/list_favorite/bindings/list_favorite_binding.dart';
 import 'package:lelang_fb/app/modules/list_favorite/views/list_favorite_view.dart';
 import 'package:lelang_fb/app/modules/myitems/bindings/myitems_binding.dart';
@@ -49,6 +51,7 @@ abstract class Routes {
   static const SEARCH = _Paths.SEARCH;
   static const ONBOARDING = _Paths.ONBOARDING;
   static const MYITEMS = _Paths.MYITEMS;
+  static const ADMIN = _Paths.ADMIN;
 }
 
 class AppPages {
@@ -132,6 +135,12 @@ class AppPages {
       name: Routes.MYITEMS,
       page: () => MyitemsView(),
       binding: MyitemsBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: Routes.ADMIN,
+      page: () => AdminView(),
+      binding: AdminBinding(),
       transition: Transition.fadeIn,
     ),
   ];
