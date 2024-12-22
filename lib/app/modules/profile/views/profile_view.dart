@@ -41,53 +41,70 @@ class ProfileView extends GetView<ProfileController> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Profile picture
-                Image.asset(
-                  'assets/icons/profile.png',
-                  width: 75,
-                  height: 75,
-                  fit: BoxFit.contain,
-                ),
-                SizedBox(width: 17),
-
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            Obx(() => Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      'Dominic Toretto', // User name
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        vertical: 4,
-                        horizontal: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: controller.verify
-                            ? AppColors.hijauTua
-                            : AppColors.red,
-                        borderRadius: BorderRadius.circular(7),
-                      ),
-                      child: Text(
-                        controller.verify ? 'Verified Seller' : 'Unverified',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
+                    controller.profileUrl.value.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(37.5),
+                            child: Image.network(
+                              controller.profileUrl.value,
+                              width: 75,
+                              height: 75,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Image.asset(
+                                'assets/icons/profile.png',
+                                width: 75,
+                                height: 75,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          )
+                        : Image.asset(
+                            'assets/icons/profile.png',
+                            width: 75,
+                            height: 75,
+                            fit: BoxFit.contain,
+                          ),
+                    SizedBox(width: 17),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          controller.displayName.value,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
+                        SizedBox(height: 4),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: controller.verify
+                                ? AppColors.hijauTua
+                                : AppColors.red,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Text(
+                            controller.verify
+                                ? 'Verified Seller'
+                                : 'Unverified',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
-                ),
-              ],
-            ),
-            SizedBox(height: 20), // Space between profile and settings menu
+                )),
+            SizedBox(height: 20),
             Buttonn(
               image: Assets.icons.profile2.path,
               text: 'Profile Settings',

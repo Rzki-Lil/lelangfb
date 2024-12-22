@@ -34,13 +34,11 @@ class AuthController extends GetxController {
     checkGuestStatus();
     checkEmailVerificationStatus();
 
-    // Modifikasi auth state listener untuk tidak clear login info
     _auth.authStateChanges().listen((User? user) {
       isLoggedIn.value = user != null;
       if (user != null) {
         Get.offAllNamed(Routes.HOME);
       } else {
-        // Hanya navigasi ke login tanpa clear login info
         Get.offAllNamed(Routes.LOGIN);
       }
     });
@@ -99,25 +97,20 @@ class AuthController extends GetxController {
     try {
       final userRef =
           FirebaseFirestore.instance.collection('users').doc(user.uid);
-
-      // Check if user document exists
       final docSnapshot = await userRef.get();
 
       if (!docSnapshot.exists) {
-        // Create new user document if it doesn't exist
+        // Create new user document
         await userRef.set({
           'uid': user.uid,
           'email': user.email,
           'displayName': user.displayName ?? 'User',
-          'photoURL': user.photoURL,
+          'photoURL': user.photoURL ?? '',
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
           'phoneNumber': user.phoneNumber,
           'isVerified': user.emailVerified,
           'provider': user.providerData.map((e) => e.providerId).toList(),
-          // Additional user data
-          'bio': '',
-          'location': '',
           'totalItems': 0,
           'rating': 0.0,
           'ratingCount': 0,
@@ -125,11 +118,11 @@ class AuthController extends GetxController {
           'following': 0,
         });
       } else {
-        // Update existing user document
+        //klo ada data ga update photo url
+        final existingData = docSnapshot.data()!;
         await userRef.update({
           'email': user.email,
-          'displayName': user.displayName ?? docSnapshot.get('displayName'),
-          'photoURL': user.photoURL ?? docSnapshot.get('photoURL'),
+          'displayName': user.displayName ?? existingData['displayName'],
           'updatedAt': FieldValue.serverTimestamp(),
           'phoneNumber': user.phoneNumber,
           'isVerified': user.emailVerified,
@@ -148,7 +141,33 @@ class AuthController extends GetxController {
         password: password,
       );
       if (userCredential.user != null) {
-        await createOrUpdateUserData(userCredential.user!);
+        // dapetin data user yang ada
+        final docSnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .get();
+
+        if (docSnapshot.exists) {
+          final existingData = docSnapshot.data()!;
+          //update data
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .update({
+            'email': userCredential.user!.email,
+            'displayName':
+                userCredential.user!.displayName ?? existingData['displayName'],
+            'updatedAt': FieldValue.serverTimestamp(),
+            'phoneNumber':
+                userCredential.user!.phoneNumber ?? existingData['phoneNumber'],
+            'isVerified': userCredential.user!.emailVerified,
+            'provider': userCredential.user!.providerData
+                .map((e) => e.providerId)
+                .toList(),
+          });
+        } else {
+          await createOrUpdateUserData(userCredential.user!);
+        }
 
         printUserInfo(userCredential.user!);
         if (userCredential.user!.emailVerified) {
@@ -208,8 +227,36 @@ class AuthController extends GetxController {
         final User? user = userCredential.user;
 
         if (user != null) {
-          // Create or update user document after successful Google sign in
-          await createOrUpdateUserData(user);
+          // Check for existing user data first
+          final docSnapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+
+          if (docSnapshot.exists) {
+            final existingData = docSnapshot.data()!;
+            // Only update if there's no existing custom photo
+            if (existingData['photoURL'] == null ||
+                existingData['photoURL'] == '') {
+              await createOrUpdateUserData(user);
+            } else {
+              // Update other fields but preserve the existing photoURL
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .update({
+                'email': user.email,
+                'displayName': user.displayName ?? existingData['displayName'],
+                'updatedAt': FieldValue.serverTimestamp(),
+                'phoneNumber': user.phoneNumber ?? existingData['phoneNumber'],
+                'isVerified': user.emailVerified,
+                'provider': user.providerData.map((e) => e.providerId).toList(),
+              });
+            }
+          } else {
+            // New user, create with Google photo
+            await createOrUpdateUserData(user);
+          }
 
           printUserInfo(user);
           // Hapus clearLoginInfo di sini

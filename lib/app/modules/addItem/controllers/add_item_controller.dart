@@ -11,6 +11,7 @@ import 'package:lelang_fb/core/constants/color.dart';
 import 'package:path/path.dart' as path;
 import 'dart:convert';
 import '../../../services/location_service.dart';
+import '../../../services/cloudinary_service.dart';
 
 import 'package:wheel_picker/wheel_picker.dart';
 
@@ -53,10 +54,6 @@ class AddItemController extends GetxController {
 
   var characterCount = 0.obs;
 
-  final String cloudName = 'dxc6a1qww';
-  final String uploadPreset = 'lelangfb';
-  final String apiKey = '737978153918162';
-
   final RxList<Province> provinces = <Province>[].obs;
   final RxList<City> cities = <City>[].obs;
   final Rxn<Province> selectedProvince = Rxn<Province>();
@@ -80,6 +77,9 @@ class AddItemController extends GetxController {
   final selectedHour = 0.obs;
   final selectedMinute = 0.obs;
   final isAm = true.obs;
+
+  // Add focus node for price field
+  final FocusNode priceFocus = FocusNode();
 
   Future<void> pickThumbnailImage() async {
     final pickedFile = await picker.pickImage(
@@ -378,60 +378,16 @@ class AddItemController extends GetxController {
     return "${date.day}-${date.month}-${date.year}";
   }
 
-  Future<List<String>> uploadImagesToCloudinary(List<File> images) async {
-    List<String> imageUrls = [];
-
-    for (var image in images) {
-      try {
-        var request = http.MultipartRequest(
-          'POST',
-          Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload'),
-        );
-
-        var imageStream = await http.ByteStream(image.openRead());
-        var length = await image.length();
-
-        var multipartFile = http.MultipartFile(
-          'file',
-          imageStream,
-          length,
-          filename: path.basename(image.path),
-        );
-
-        request.files.add(multipartFile);
-        request.fields['upload_preset'] = 'lelangfb';
-        request.fields['folder'] = 'lelang_img';
-
-        var streamedResponse = await request.send();
-        var response = await http.Response.fromStream(streamedResponse);
-
-        if (response.statusCode == 200) {
-          final responseData = json.decode(response.body);
-          final url = responseData['secure_url'];
-          if (url != null) {
-            imageUrls.add(url);
-            print('Successfully uploaded image: $url');
-          } else {
-            throw Exception('No secure_url in response');
-          }
-        } else {
-          print(
-              'Upload failed with status ${response.statusCode}: ${response.body}');
-          throw Exception('Upload failed with status ${response.statusCode}');
-        }
-      } catch (e) {
-        print('Error uploading to Cloudinary: $e');
-        throw e;
-      }
-    }
-
-    return imageUrls;
-  }
-
   Future<void> submitItem() async {
     try {
       if (!validateForm()) return;
       isLoading.value = true;
+
+      if (locationController.text.trim().isEmpty) {
+        Get.snackbar('Error', 'Please enter location',
+            backgroundColor: Colors.red, colorText: Colors.white);
+        return;
+      }
 
       List<String> allImageUrls = [];
       List<File> allImages = [];
@@ -439,11 +395,10 @@ class AddItemController extends GetxController {
       if (thumbnailImage.value != null) {
         allImages.add(thumbnailImage.value!);
       }
-
       allImages.addAll(carouselImages);
 
       if (allImages.isNotEmpty) {
-        allImageUrls = await uploadImagesToCloudinary(allImages);
+        allImageUrls = await CloudinaryService.uploadImages(allImages);
         print('Debug - Uploaded image URLs: $allImageUrls');
       }
 
@@ -715,8 +670,12 @@ class AddItemController extends GetxController {
     super.onInit();
     loadProvinces();
 
+    // Remove the existing price controller listener and add the new one
     priceController.addListener(() {
-      onPriceChanged(priceController.text);
+      final text = priceController.text;
+      if (text.isNotEmpty) {
+        onPriceChanged(text);
+      }
     });
 
     descriptionController.addListener(() {
@@ -826,23 +785,40 @@ class AddItemController extends GetxController {
     selectedProvince.value = null;
     selectedCity.value = null;
     cities.clear();
+    priceFocus.dispose();
     super.onClose();
   }
 
+  // Modify onPriceChanged method
   void onPriceChanged(String value) {
     if (value.isEmpty) {
-      priceController.text = '';
       return;
     }
 
+    // Only process if there are actual changes
+    if (value == priceController.text) {
+      return;
+    }
+
+    // Remove any non-digit characters
     String numericOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
 
-    if (numericOnly != value) {
-      priceController.text = numericOnly;
-      priceController.selection = TextSelection.fromPosition(
+
+    priceController.value = TextEditingValue(
+      text: numericOnly,
+      selection: TextSelection.fromPosition(
         TextPosition(offset: numericOnly.length),
-      );
-    }
+      ),
+    );
+  }
+
+
+  String formatPrice(String price) {
+    if (price.isEmpty) return '';
+    return price.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]}.',
+    );
   }
 
   void resetLocationData() {

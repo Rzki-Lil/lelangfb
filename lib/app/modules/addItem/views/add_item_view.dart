@@ -179,6 +179,7 @@ class AddItemView extends GetView<AddItemController> {
 
                                   CustomTextField(
                                     controller: controller.priceController,
+                                    focusNode: controller.priceFocus,
                                     labelText: 'Starting Price',
                                     keyboardType: TextInputType.number,
                                     prefix: Text(
@@ -191,10 +192,11 @@ class AddItemView extends GetView<AddItemController> {
                                     inputFormatters: [
                                       FilteringTextInputFormatter.digitsOnly,
                                     ],
+                                    onChanged: (value) {
+                                      controller.onPriceChanged(value);
+                                    },
                                   ),
                                   SizedBox(height: 16),
-
-                                  // Remove vehicle-specific fields (year, engine, plate number, etc.)
                                 ],
                               ),
                             ),
@@ -202,7 +204,7 @@ class AddItemView extends GetView<AddItemController> {
                         )),
                   ),
 
-                  // Section 2: Auction Time and Location
+                  // Section 2
                   Container(
                     margin: EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
@@ -231,7 +233,6 @@ class AddItemView extends GetView<AddItemController> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  // Date Picker
                                   Container(
                                     margin: EdgeInsets.only(bottom: 16),
                                     decoration: BoxDecoration(

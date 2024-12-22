@@ -27,6 +27,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       <Map<String, dynamic>>[].obs;
   final RxList<Map<String, dynamic>> upcomingAuctions =
       <Map<String, dynamic>>[].obs;
+  RxList<String> carouselImages = <String>[].obs;
 
   @override
   void onReady() {
@@ -70,6 +71,10 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
     tabController = TabController(length: 3, vsync: this);
     fetchEvents();
     setupItemsListener();
+    fetchCarouselImages().then((_) {
+      // Force refresh after images are loaded
+      carouselImages.refresh();
+    });
 
     _firestore.collection('items').get().then(
       (snapshot) {
@@ -193,6 +198,35 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
           .toList();
     } catch (e) {
       print('Error fetching events: $e');
+    }
+  }
+
+  Future<void> fetchCarouselImages() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('carousel')
+          .orderBy('createdAt', descending: false)
+          .get();
+
+      // Clear existing images first
+      carouselImages.clear();
+
+      // Create temporary list to hold all images
+      List<String> tempImages = [];
+
+      for (var doc in snapshot.docs) {
+        String imageUrl = doc.data()['imageUrl'] as String;
+        tempImages.add(imageUrl);
+        print("Added image URL: $imageUrl");
+      }
+
+      // Update carouselImages only when all images are collected
+      if (tempImages.isNotEmpty) {
+        carouselImages.value = tempImages;
+        print("Carousel loaded with ${carouselImages.length} images");
+      }
+    } catch (e) {
+      print('Error fetching carousel images: $e');
     }
   }
 

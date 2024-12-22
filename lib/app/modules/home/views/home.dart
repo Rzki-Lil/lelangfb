@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:carousel_slider/carousel_controller.dart';
 import 'package:flutter/material.dart';
@@ -25,8 +26,6 @@ class Home extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(HomeController());
-    final carouselController =
-        CarouselSliderController(); // Changed from CarouselController
 
     return Scaffold(
       body: CustomScrollView(
@@ -91,67 +90,96 @@ class Home extends GetView<HomeController> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Stack(
                 children: [
-                  CarouselSlider.builder(
-                    options: CarouselOptions(
-                      autoPlay:
-                          controller.bannerPromo.length > 1 ? true : false,
-                      autoPlayInterval: Duration(seconds: 3),
-                      initialPage: 0,
-                      viewportFraction: 1,
-                      enableInfiniteScroll:
-                          controller.bannerPromo.length > 1 ? true : false,
-                      onPageChanged: (index, reason) {
-                        controller.currentPage.value = index;
-                      },
-                    ),
-                    carouselController: carouselController,
-                    itemCount: controller.bannerPromo.length,
-                    itemBuilder: (context, index, realIndex) {
-                      return Builder(
-                        builder: (BuildContext context) {
-                          return Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Image.file(
-                              File(controller.bannerPromo[index]),
-                              fit: BoxFit.fill,
-                              width: double.infinity,
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
                   Obx(() {
-                    return Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Row(
-                        children:
-                            List.generate(controller.bannerPromo.length, (i) {
-                          return GestureDetector(
-                            onTap: () {
-                              carouselController.animateToPage(
-                                  i); // Navigate to specific page
-                            },
-                            child: Container(
-                              width: 24,
-                              height: 12,
-                              margin: const EdgeInsets.symmetric(
-                                  vertical: 8.0, horizontal: 4.0),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: controller.currentPage.value == i
-                                    ? AppColors.hijauMuda
-                                    : Colors.grey.withOpacity(0.4),
+                    if (controller.carouselImages.isEmpty) {
+                      return Container(
+                        height: 220,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.hijauTua),
+                          ),
+                        ),
+                      );
+                    }
+
+                    return CarouselSlider.builder(
+                      options: CarouselOptions(
+                        height: 220,
+                        autoPlay: controller.carouselImages.length > 1,
+                        autoPlayInterval: Duration(seconds: 5),
+                        autoPlayAnimationDuration: Duration(milliseconds: 800),
+                        autoPlayCurve: Curves.easeInOut,
+                        initialPage: 0,
+                        viewportFraction: 1.0,
+                        onPageChanged: (index, reason) {
+                          controller.currentPage.value = index;
+                        },
+                      ),
+                      itemCount: controller.carouselImages.length,
+                      itemBuilder: (context, index, realIndex) {
+                        final imageUrl = controller.carouselImages[index];
+                        return Container(
+                          margin: EdgeInsets.symmetric(horizontal: 5),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(
+                                color: Colors.grey[200],
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        AppColors.hijauTua),
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Container(
+                                color: Colors.grey[200],
+                                child: Icon(Icons.error, color: Colors.red),
                               ),
                             ),
-                          );
-                        }),
-                      ),
+                          ),
+                        );
+                      },
                     );
                   }),
+                  // Only show indicators if there are multiple images
+                  Obx(() => controller.carouselImages.length > 1
+                      ? Positioned(
+                          bottom: 15,
+                          left: 0,
+                          right: 0,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: controller.carouselImages
+                                .asMap()
+                                .entries
+                                .map((entry) {
+                              return AnimatedContainer(
+                                duration: Duration(milliseconds: 300),
+                                width: controller.currentPage.value == entry.key
+                                    ? 20
+                                    : 8,
+                                height: 8,
+                                margin: EdgeInsets.symmetric(horizontal: 3),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                  color:
+                                      controller.currentPage.value == entry.key
+                                          ? AppColors.hijauTua
+                                          : Colors.white.withOpacity(0.5),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        )
+                      : SizedBox.shrink()),
                 ],
               ),
             ),

@@ -20,6 +20,7 @@ class CustomTextField extends StatefulWidget {
   final bool expands;
   final List<TextInputFormatter>? inputFormatters;
   final Color? textColor;
+  final TextInputAction? textInputAction; // Add this
 
   const CustomTextField({
     Key? key,
@@ -40,6 +41,7 @@ class CustomTextField extends StatefulWidget {
     this.expands = false,
     this.textColor,
     this.inputFormatters,
+    this.textInputAction, // Add this
   })  : assert(!isPassword || maxLines == null && !expands,
             'Password fields cannot be multiline'),
         super(key: key);
@@ -98,6 +100,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           fontSize: 15,
         ),
         cursorColor: activeColor,
+        textInputAction: widget.textInputAction, // Add this
         decoration: InputDecoration(
           labelText: widget.labelText,
           labelStyle: TextStyle(
