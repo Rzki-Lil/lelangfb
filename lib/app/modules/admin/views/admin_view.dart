@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:lelang_fb/app/modules/home/controllers/home_controller.dart';
+import 'package:lelang_fb/app/widgets/header.dart';
 import '../../../../core/constants/color.dart';
 import '../controllers/admin_controller.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -13,40 +15,17 @@ class AdminView extends GetView<AdminController> {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        elevation: 0,
-        title: Row(
-          children: [
-            Icon(Icons.admin_panel_settings, color: Colors.white),
-            SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Admin Panel',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'Manage Carousel Images',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ],
+      appBar: Header(
+        title: 'Admin Panel',
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon:
+              Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.hijauTua),
+          onPressed: () {
+            Get.back();
+          },
         ),
-        backgroundColor: AppColors.hijauTua,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.help_outline, color: Colors.white),
-            onPressed: () => _showHelp(),
-          ),
-        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: controller.addImage,
@@ -60,7 +39,7 @@ class AdminView extends GetView<AdminController> {
           Container(
             padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppColors.hijauTua,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
@@ -159,13 +138,13 @@ class AdminView extends GetView<AdminController> {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: AppColors.hijauTua,
+            color: Colors.white,
           ),
         ),
         Text(
           label,
           style: TextStyle(
-            color: Colors.grey[600],
+            color: Colors.white,
             fontSize: 12,
           ),
         ),
