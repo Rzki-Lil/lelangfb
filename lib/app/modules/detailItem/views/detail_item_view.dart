@@ -1,29 +1,28 @@
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lelang_fb/app/modules/home/controllers/home_controller.dart';
 import 'package:lelang_fb/app/utils/text.dart';
+import 'package:lelang_fb/app/widgets/header.dart';
 import 'package:lelang_fb/core/constants/color.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:get/get_connect/connect.dart';
+
 import 'package:get/get.dart';
 
-import '../../../../core/assets/assets.gen.dart';
 import '../controllers/detail_item_controller.dart';
 
 class DetailItemView extends GetView<DetailItemController> {
   const DetailItemView({super.key});
 
-  String safeConcat(String label, dynamic value) {
-    return "$label${value?.toString() ?? 'N/A'}";
-  }
-
   @override
   Widget build(BuildContext context) {
     final Map<String, dynamic> item = Get.arguments ?? {};
-    final CarouselSliderController carouselController =
-        CarouselSliderController();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.checkFavoriteStatus(item['id']);
+    });
 
     String safeGetString(dynamic value, String defaultValue) {
       if (value == null) return defaultValue;
@@ -62,388 +61,381 @@ class DetailItemView extends GetView<DetailItemController> {
 
     final List<String> allImages = getCarouselImages(item);
 
+    final sellerId = item['seller_id'];
+    if (sellerId != null) {
+      controller.fetchSellerData(sellerId);
+    }
+
     return Scaffold(
-      appBar: AppBar(
+      backgroundColor: Color(0xFFF8F9FA),
+      appBar: Header(
+        title: 'Detail Item',
+        centerTitle: true,
+        backgroundColor: Colors.white,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Get.back(),
+          icon:
+              Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.hijauTua),
+          onPressed: () {
+            Get.back();
+            final homeController = Get.find<HomeController>();
+            homeController.selectedPage.value = 0;
+          },
         ),
-        title: Text('Item Detail'),
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Stack(
-                children: [
-                  CarouselSlider.builder(
-                    options: CarouselOptions(
-                      height: 300,
-                      autoPlay: allImages.length > 1,
-                      autoPlayInterval: Duration(seconds: 3),
-                      initialPage: 0,
-                      viewportFraction: 1,
-                      enableInfiniteScroll: allImages.length > 1,
-                      onPageChanged: (index, reason) {
-                        controller.currentPage.value = index;
-                      },
-                    ),
-                    carouselController: carouselController,
-                    itemCount: allImages.length,
-                    itemBuilder: (context, index, realIndex) {
-                      final imageUrl = allImages[index];
-                      return Container(
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(10),
-                          color: Colors.grey[200],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: imageUrl.startsWith('http')
-                              ? Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    print('Error loading image: $error');
-                                    return _buildErrorWidget();
-                                  },
-                                  loadingBuilder:
-                                      (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return _buildLoadingWidget();
-                                  },
-                                )
-                              : Image.asset(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    print('Error loading asset: $error');
-                                    return _buildErrorWidget();
-                                  },
-                                ),
-                        ),
-                      );
+        child: Column(
+          children: [
+            // Image Carousel Section with Indicators
+            Stack(
+              children: [
+                CarouselSlider(
+                  options: CarouselOptions(
+                    height: 300,
+                    viewportFraction: 1,
+                    enableInfiniteScroll: allImages.length > 1,
+                    autoPlay: allImages.length > 1,
+                    onPageChanged: (index, reason) {
+                      controller.currentCarouselIndex.value = index;
                     },
                   ),
-                  if (allImages.length > 1)
-                    Positioned(
-                      bottom: 10,
-                      left: 0,
-                      right: 0,
-                      child: Obx(() => Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: allImages.asMap().entries.map((entry) {
-                              return Container(
-                                width: 8,
-                                height: 8,
-                                margin: EdgeInsets.symmetric(horizontal: 4),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color:
-                                      controller.currentPage.value == entry.key
-                                          ? AppColors.hijauTua
-                                          : Colors.white,
-                                ),
-                              );
-                            }).toList(),
-                          )),
-                    ),
-                ],
-              ),
-              SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: TextCust(
-                      fontSize: 24,
-                      color: AppColors.black,
-                      text: safeGetString(item['name'], 'No Name'),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      color: AppColors.grey,
-                    ),
-                    width: 40,
-                    height: 40,
-                    child: Obx(
-                      () {
-                        return IconButton(
-                          onPressed: () {
-                            controller.isClicked.value =
-                                !controller.isClicked.value;
-                          },
-                          icon: Icon(
-                            controller.isClicked.value
-                                ? Icons.favorite
-                                : Icons.favorite_border_outlined,
-                            color: controller.isClicked.value
-                                ? Colors.green
-                                : Colors.white,
+                  items: allImages.map((imageUrl) {
+                    return Builder(
+                      builder: (BuildContext context) {
+                        return Container(
+                          width: MediaQuery.of(context).size.width,
+                          child: CachedNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            placeholder: (context, url) => Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            errorWidget: (context, url, error) =>
+                                Icon(Icons.error),
                           ),
                         );
                       },
-                    ),
-                  )
-                ],
-              ),
-              TextCust(
-                fontSize: 12,
-                color: AppColors.grey,
-                text: "Current Price",
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    );
+                  }).toList(),
+                ),
+                if (allImages.length > 1)
+                  Positioned(
+                    bottom: 15,
+                    left: 0,
+                    right: 0,
+                    child: Obx(() => Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: allImages.asMap().entries.map((entry) {
+                            return AnimatedContainer(
+                              duration: Duration(milliseconds: 300),
+                              width: controller.currentCarouselIndex.value ==
+                                      entry.key
+                                  ? 20
+                                  : 8,
+                              height: 8,
+                              margin: EdgeInsets.symmetric(horizontal: 3),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(4),
+                                color: controller.currentCarouselIndex.value ==
+                                        entry.key
+                                    ? AppColors.hijauTua
+                                    : Colors.white.withOpacity(0.5),
+                              ),
+                            );
+                          }).toList(),
+                        )),
+                  ),
+              ],
+            ),
+
+            // Item Details and Price Section
+            Container(
+              padding: EdgeInsets.all(16),
+              color: AppColors.hijauTua,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TextCust(
-                    fontSize: 24,
-                    color: AppColors.hijauMuda,
-                    text: "Rp ${safeGetString(item['current_price'], '0')}",
-                    fontWeight: FontWeight.bold,
-                  ),
-                  _buildBadge(
-                    safeGetString(item['rarity'], 'Common'),
-                    _getRarityColor(safeGetString(item['rarity'], 'Common')),
-                  ),
-                ],
-              ),
-              SizedBox(height: 16),
-              TextCust(
-                fontSize: 16,
-                color: AppColors.black,
-                text: "Schedule   : $formattedDate",
-              ),
-              TextCust(
-                fontSize: 16,
-                color: AppColors.black,
-                text:
-                    "Location    : ${safeGetString(item['lokasi'], 'No location')}",
-              ),
-              SizedBox(height: 16),
-              Card(
-                margin: EdgeInsets.symmetric(vertical: 16),
-                elevation: 0,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    color: Colors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        spreadRadius: 2,
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          safeGetString(item['name'], 'No Name'),
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      // Updated favorite button with white background
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Obx(() => IconButton(
+                              onPressed: () => controller.toggleFavorite(item),
+                              icon: Icon(
+                                controller.isFavorite.value
+                                    ? Icons.favorite
+                                    : Icons.favorite_border_outlined,
+                                color: controller.isFavorite.value
+                                    ? Colors.white
+                                    : Colors.white,
+                                size: 23,
+                              ),
+                            )),
                       ),
                     ],
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  Text(
+                    'Starting Price',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  Text(
+                    'Rp ${safeGetString(item['starting_price'], '0')}',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Details Sections
+            Container(
+              margin: EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  // Item Details Card
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: Theme(
+                      data: Theme.of(context)
+                          .copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        initiallyExpanded: true,
+                        backgroundColor: Colors.transparent,
+                        collapsedBackgroundColor: Colors.transparent,
+                        title: Row(
                           children: [
-                            Icon(
-                              Icons.description_outlined,
-                              color: AppColors.hijauTua,
-                              size: 24,
-                            ),
-                            SizedBox(width: 8),
-                            TextCust(
-                              fontSize: 18,
-                              text: "Item Description",
-                              color: AppColors.black,
-                              fontWeight: FontWeight.bold,
+                            Icon(Icons.info_outline,
+                                color: AppColors.hijauTua, size: 20),
+                            SizedBox(width: 12),
+                            Text(
+                              'Item Details',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[800],
+                              ),
                             ),
                           ],
                         ),
-                        Divider(
-                          color: Colors.green.shade200,
-                          thickness: 1,
-                          height: 24,
-                        ),
-                        Obx(() => Column(
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                            child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                AnimatedCrossFade(
-                                  firstChild: TextCust(
-                                    fontSize: 14,
-                                    text: safeGetString(item['description'],
-                                        'No description available'),
-                                    color: AppColors.black,
-                                    maxLines: 3,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  secondChild: TextCust(
-                                    fontSize: 14,
-                                    text: safeGetString(item['description'],
-                                        'No description available'),
-                                    color: AppColors.black,
-                                  ),
-                                  crossFadeState: controller.isExpanded.value
-                                      ? CrossFadeState.showSecond
-                                      : CrossFadeState.showFirst,
-                                  duration: Duration(milliseconds: 300),
+                                _buildDetailRow(
+                                  Icons.location_on_outlined,
+                                  'Location',
+                                  _extractProvince(
+                                      item['lokasi'] ?? 'Unknown Province'),
                                 ),
-                                if ((safeGetString(item['description'], '')
-                                        .length >
-                                    100))
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 8.0),
-                                    child: Center(
-                                      child: InkWell(
-                                        onTap: () =>
-                                            controller.isExpanded.toggle(),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              controller.isExpanded.value
-                                                  ? 'Show Less'
-                                                  : 'Show More',
-                                              style: TextStyle(
-                                                color: AppColors.hijauTua,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                            AnimatedRotation(
-                                              turns: controller.isExpanded.value
-                                                  ? 0.5
-                                                  : 0,
-                                              duration:
-                                                  Duration(milliseconds: 300),
-                                              child: Icon(
-                                                Icons.keyboard_arrow_down,
-                                                color: AppColors.hijauTua,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                _buildDetailRow(
+                                  Icons.calendar_today_outlined,
+                                  'Auction Date',
+                                  formattedDate,
+                                ),
+                                _buildDetailRow(
+                                  Icons.access_time,
+                                  'Start Time',
+                                  safeGetString(item['jamMulai'], '--:--'),
+                                ),
+                                _buildDetailRow(
+                                  Icons.category_outlined,
+                                  'Category',
+                                  safeGetString(item['category'], 'Others'),
+                                ),
+                                _buildDetailRow(
+                                  Icons.star_outline,
+                                  'Rarity',
+                                  safeGetString(item['rarity'], 'Common'),
+                                  color: _getRarityColor(
+                                      safeGetString(item['rarity'], 'Common')),
+                                ),
+                                Divider(color: Colors.grey.shade200),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Description',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
                                       ),
                                     ),
-                                  ),
+                                    TextButton(
+                                      onPressed: () =>
+                                          controller.isExpanded.toggle(),
+                                      child: Obx(() => Text(
+                                            controller.isExpanded.value
+                                                ? 'Show Less'
+                                                : 'Show More',
+                                            style: TextStyle(
+                                              color: AppColors.hijauTua,
+                                              fontSize: 12,
+                                            ),
+                                          )),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 8),
+                                Obx(() => Text(
+                                      safeGetString(item['description'],
+                                          'No description available'),
+                                      style: TextStyle(
+                                        color: Colors.grey[800],
+                                        height: 1.5,
+                                      ),
+                                      maxLines: controller.isExpanded.value
+                                          ? null
+                                          : 3,
+                                      overflow: controller.isExpanded.value
+                                          ? TextOverflow.visible
+                                          : TextOverflow.ellipsis,
+                                    )),
                               ],
-                            )),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-//title
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.person_outline,
-                      color: AppColors.hijauTua,
-                      size: 24,
-                    ),
-                    SizedBox(width: 8),
-                    TextCust(
-                      fontSize: 18,
-                      text: "Seller Information",
-                      color: AppColors.black,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ],
-                ),
-              ),
-
-              Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      spreadRadius: 2,
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: _buildSellerInfo(item['seller_id']?.toString()),
-                ),
-              ),
-
-              Container(
-                margin: const EdgeInsets.only(top: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      spreadRadius: 2,
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.flag_outlined,
-                            color: AppColors.hijauTua,
-                            size: 24,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Auction Status',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[800],
                             ),
                           ),
                         ],
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: _getStatusColor(item['status'] ?? 'upcoming')
-                              .withOpacity(0.9),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          (item['status'] ?? 'upcoming').toUpperCase(),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+
+                  SizedBox(height: 16),
+
+                  // Seller Information Card
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Obx(() => CircleAvatar(
+                                        radius: 24,
+                                        backgroundImage: controller.userData
+                                                    .value?['photoURL'] !=
+                                                null
+                                            ? NetworkImage(controller
+                                                .userData.value!['photoURL'])
+                                            : null,
+                                        child: controller.userData
+                                                    .value?['photoURL'] ==
+                                                null
+                                            ? Icon(Icons.person,
+                                                color: Colors.grey[400])
+                                            : null,
+                                      )),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Obx(() => Text(
+                                                  controller.sellerName.value,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16,
+                                                  ),
+                                                )),
+                                            SizedBox(width: 4),
+                                            Obx(() => controller
+                                                    .isVerifiedSeller.value
+                                                ? Icon(Icons.verified,
+                                                    color: AppColors.hijauTua,
+                                                    size: 16)
+                                                : SizedBox()),
+                                          ],
+                                        ),
+                                        Obx(() => Text(
+                                              controller.sellerEmail.value,
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 14,
+                                              ),
+                                            )),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              // ...rest of the seller card code...
+                            ],
+                          ),
+                          Divider(height: 24, color: Colors.grey[200]),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Obx(() => _buildSellerStat(
+                                    'Items',
+                                    controller.totalItems.value.toString(),
+                                    Icons.inventory_2_outlined,
+                                  )),
+                              Container(
+                                height: 24,
+                                width: 1,
+                                color: Colors.grey.shade200,
+                              ),
+                              Obx(() => _buildSellerStat(
+                                    'Rating',
+                                    '${(controller.userData.value?['rating'] ?? 0.0).toStringAsFixed(1)}',
+                                    Icons.star_outline,
+                                  )),
+                              Container(
+                                height: 24,
+                                width: 1,
+                                color: Colors.grey.shade200,
+                              ),
+                              Obx(() => _buildSellerStat(
+                                    'Joined',
+                                    controller.sellerJoinDate.value,
+                                    Icons.calendar_today_outlined,
+                                  )),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              Row(
-                children: [],
-              )
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -504,6 +496,14 @@ class DetailItemView extends GetView<DetailItemController> {
       'December'
     ];
     return months[month - 1];
+  }
+
+  String _extractProvince(String location) {
+    final parts = location.split(',');
+    if (parts.length > 1) {
+      return parts[1].trim();
+    }
+    return location.trim();
   }
 
   Widget _buildSellerInfo(String? sellerId) {
@@ -578,12 +578,7 @@ class DetailItemView extends GetView<DetailItemController> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    spreadRadius: 2,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
+                  BoxShadow(),
                 ],
               ),
               child: Column(
@@ -639,11 +634,6 @@ class DetailItemView extends GetView<DetailItemController> {
                             ],
                           ),
                         ),
-                        IconButton(
-                          icon: Icon(Icons.message_outlined),
-                          color: AppColors.hijauTua,
-                          onPressed: () => _handleChatWithSeller(sellerId),
-                        ),
                       ],
                     ),
                   ),
@@ -669,21 +659,22 @@ class DetailItemView extends GetView<DetailItemController> {
                           width: 1,
                           color: Colors.grey.shade200,
                         ),
-                        _buildSellerStat(
-                          'Rating',
-                          '${(userData['rating'] ?? 0.0).toStringAsFixed(1)}',
-                          Icons.star_outline,
-                        ),
+                        Obx(() => _buildSellerStat(
+                              'Rating',
+                              '${(controller.userData.value?['rating'] ?? 0.0).toStringAsFixed(1)}',
+                              Icons.star_outline,
+                            )),
                         Container(
                           height: 24,
                           width: 1,
                           color: Colors.grey.shade200,
                         ),
-                        _buildSellerStat(
-                          'Joined',
-                          _getJoinedDate(userData['createdAt']),
-                          Icons.calendar_today_outlined,
-                        ),
+                        Obx(() => _buildSellerStat(
+                              'Joined',
+                              _getJoinedDate(
+                                  controller.userData.value?['createdAt']),
+                              Icons.calendar_today_outlined,
+                            )),
                       ],
                     ),
                   ),
@@ -728,92 +719,30 @@ class DetailItemView extends GetView<DetailItemController> {
     return 'N/A';
   }
 
-  void _handleChatWithSeller(String sellerId) {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
-      Get.snackbar(
-        'Sign in Required',
-        'Please sign in to chat with the seller',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return;
-    }
-
-    if (currentUser.uid == sellerId) {
-      Get.snackbar(
-        'Note',
-        'This is your own listing',
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-      );
-      return;
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'ongoing':
-        return Colors.green;
-      case 'ended':
-        return Colors.red;
-      case 'upcoming':
-      default:
-        return Colors.blue;
-    }
-  }
-
-  Widget _buildBadge(String text, Color color) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 6,
-      ),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    );
-  }
-}
-
-class TextImageColumn extends StatelessWidget {
-  final String image;
-  final String text;
-  final double width;
-  final double height;
-  final double? fontSize;
-  const TextImageColumn({
-    super.key,
-    required this.text,
-    required this.image,
-    required this.width,
-    required this.height,
-    this.fontSize,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildDetailRow(IconData icon, String label, String value,
+      {Color? color}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Column(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Row(
         children: [
-          Image.asset(
-            image,
-            width: width,
+          Icon(icon, size: 20, color: AppColors.hijauTua),
+          SizedBox(width: 12),
+          Text(
+            '$label:',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
           ),
-          TextCust(
-              textAlign: TextAlign.center,
-              text: text,
-              fontSize: fontSize ?? 14),
+          SizedBox(width: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              color: color ?? Colors.grey[900],
+            ),
+          ),
         ],
       ),
     );

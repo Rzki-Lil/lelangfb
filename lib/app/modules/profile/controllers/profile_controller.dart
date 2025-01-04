@@ -7,10 +7,12 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lelang_fb/app/modules/profile/controllers/phone_verification_controller.dart';
 import 'package:lelang_fb/app/services/cloudinary_service.dart';
 import 'package:lelang_fb/app/services/location_service.dart';
 import 'package:lelang_fb/app/utils/custom_text_field.dart';
 import 'package:lelang_fb/core/constants/color.dart';
+import 'dart:math';
 
 class ProfileController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -53,6 +55,14 @@ class ProfileController extends GetxController {
     'address': 25.0,
   };
 
+  // Remove all the phone verification related code and add this:
+  final phoneVerificationController = Get.put(PhoneVerificationController());
+
+  // Add this variable near the top with other Rx variables
+  final RxString profileStatusMessage = ''.obs;
+
+  final RxBool hasShownVerificationMessage = false.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -80,6 +90,11 @@ class ProfileController extends GetxController {
 
     // Initial fetch
     fetchUserData();
+
+    // Add callback for verification success
+    phoneVerificationController.verificationSuccessCallback = () {
+      fetchUserData(); // Refresh user data after verification
+    };
   }
 
   @override
@@ -89,6 +104,8 @@ class ProfileController extends GetxController {
 
   @override
   void onClose() {
+    hasShownVerificationMessage.value =
+        false; // Reset when controller is closed
     super.onClose();
   }
 
@@ -128,15 +145,22 @@ class ProfileController extends GetxController {
     }
   }
 
+  // Update the updateUserProfile method
   Future<void> updateUserProfile() async {
     try {
       isLoading.value = true;
       final User? currentUser = _auth.currentUser;
 
       if (currentUser != null) {
+        // If phone number has changed, verify it first
+        if (phone.text != phoneNumber.value) {
+          await phoneVerificationController.sendVerificationCode(phone.text);
+          return;
+        }
+
+        // Update other fields
         final updates = {
           'displayName': name.text,
-          'phoneNumber': phone.text,
           'updatedAt': FieldValue.serverTimestamp(),
         };
 
@@ -270,7 +294,7 @@ class ProfileController extends GetxController {
     'gb': 'united-kingdom',
     'fr': 'france',
     'jp': 'japan',
-    'dz': 'algeria', // Tambahkan Algeria
+    'dz': 'algeria',
     // Tambahkan negara lainnya jika diperlukan
   };
   // Update kode negara berdasarkan input
@@ -279,12 +303,11 @@ class ProfileController extends GetxController {
       final parsedNumber =
           await PhoneNumber.getRegionInfoFromPhoneNumber(phoneNumber);
       final isoCode = parsedNumber.isoCode?.toLowerCase();
-      print("ISO Code: $isoCode"); // Debugging
-      countryCode.value =
-          countryFlags[isoCode] ?? 'indonesia'; // Default jika tidak ditemukan
-      print("Updated Country Code: ${countryCode.value}"); // Debugging
+      print("ISO Code: $isoCode");
+      countryCode.value = countryFlags[isoCode] ?? 'indonesia';
+      print("Updated Country Code: ${countryCode.value}");
     } catch (e) {
-      countryCode.value = 'indonesia'; // Default jika parsing gagal
+      countryCode.value = 'indonesia';
       print("Error parsing phone number: $e");
     }
   }
@@ -504,7 +527,6 @@ class ProfileController extends GetxController {
             .doc(currentUser.uid)
             .collection('addresses');
 
-        // First, set all addresses to non-default
         final allAddresses = await addressesRef.get();
         for (var doc in allAddresses.docs) {
           batch.update(doc.reference, {'isDefault': false});
@@ -534,7 +556,6 @@ class ProfileController extends GetxController {
   }
 
   void editAddress(Map<String, dynamic> address) {
-    // Pre-fill
     addressController.text = address['address'];
     provinceController.text = address['province'];
     cityController.text = address['city'];
@@ -649,7 +670,6 @@ class ProfileController extends GetxController {
           'updatedAt': FieldValue.serverTimestamp(),
         };
 
-        // If setting as default, update other addresses first
         if (isDefaultAddress.value) {
           final batch = _firestore.batch();
           final addressesSnapshot = await _firestore
@@ -696,8 +716,7 @@ class ProfileController extends GetxController {
     }
   }
 
-//hitung complete
-  void calculateProfileCompleteness() {
+  void calculateProfileCompleteness() async {
     double completeness = 0.0;
 
     if (displayName.value.isNotEmpty && displayName.value != 'No Name') {
@@ -717,5 +736,69 @@ class ProfileController extends GetxController {
     }
 
     profileCompleteness.value = completeness;
+
+    profileStatusMessage.value = completeness == 100
+        ? "Your profile is complete!"
+        : "Complete your profile to make it easier\nfor you to use application";
+
+    await updateVerificationStatus(completeness);
+  }
+
+  Future<void> updateVerificationStatus(double completeness) async {
+    try {
+      final User? currentUser = _auth.currentUser;
+      if (currentUser != null) {
+        final userRef = _firestore.collection('users').doc(currentUser.uid);
+        final userDoc = await userRef.get();
+
+        if (completeness == 100) {
+          if (!userDoc.exists ||
+              userDoc.data()?['verified_buyer_seller'] != true) {
+            await userRef.set({
+              'verified_buyer_seller': true,
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+
+            if (!hasShownVerificationMessage.value) {
+              Get.snackbar(
+                'Verification Status Updated',
+                'You are now a verified buyer/seller!',
+                backgroundColor: Colors.green,
+                colorText: Colors.white,
+                duration: Duration(seconds: 3),
+              );
+              hasShownVerificationMessage.value = true;
+            }
+          }
+        } else {
+          if (!userDoc.exists ||
+              userDoc.data()?['verified_buyer_seller'] == true) {
+            await userRef.set({
+              'verified_buyer_seller': false,
+              'updatedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+
+            if (!hasShownVerificationMessage.value) {
+              Get.snackbar(
+                'Verification Status Updated',
+                'You need to complete your profile to access all features',
+                backgroundColor: Colors.amber,
+                colorText: Colors.black87,
+                duration: Duration(seconds: 3),
+              );
+              hasShownVerificationMessage.value = true;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print('Error updating verification status: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to update verification status',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 }

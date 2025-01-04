@@ -4,12 +4,11 @@ import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 import '../../../services/cloudinary_service.dart';
-import 'package:flutter/material.dart'; // Add this import
+import 'package:flutter/material.dart';
 
 import '../../home/controllers/home_controller.dart';
 
 class AdminController extends GetxController {
-  //TODO: Implement AdminController
   final ImagePicker imagePicker = ImagePicker();
   final controllerHome = Get.put(HomeController());
 
@@ -93,15 +92,12 @@ class AdminController extends GetxController {
       );
 
       if (pickedFile != null) {
-        // Get current image URL
         final String currentImageUrl = controllerHome.carouselImages[index];
 
-        // Upload new image
         final File imageFile = File(pickedFile.path);
         final String newImageUrl =
             await CloudinaryService.uploadImage(imageFile);
 
-        // Update Firestore
         final QuerySnapshot snapshot = await FirebaseFirestore.instance
             .collection('carousel')
             .where('imageUrl', isEqualTo: currentImageUrl)
@@ -114,12 +110,10 @@ class AdminController extends GetxController {
           });
         }
 
-        // Delete old image from Cloudinary
         final String oldPublicId =
             CloudinaryService.getPublicIdFromUrl(currentImageUrl);
         await CloudinaryService.deleteImage(oldPublicId);
 
-        // Refresh carousel images
         await controllerHome.fetchCarouselImages();
         Get.snackbar('Success', 'Image updated successfully');
       }
@@ -128,7 +122,6 @@ class AdminController extends GetxController {
     }
   }
 
-  // Fungsi untuk menghapus gambar
   Future<void> removeImage() async {
     try {
       if (controllerHome.carouselImages.isEmpty) return;
@@ -137,10 +130,8 @@ class AdminController extends GetxController {
           controllerHome.carouselImages[controllerHome.currentPage.value];
       final String publicId = CloudinaryService.getPublicIdFromUrl(imageUrl);
 
-      // Delete from Cloudinary
       await CloudinaryService.deleteImage(publicId);
 
-      // Delete from Firestore
       final QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('carousel')
           .where('imageUrl', isEqualTo: imageUrl)
@@ -192,13 +183,11 @@ class AdminController extends GetxController {
 
       if (confirm != true) return;
 
-      // Show loading indicator
       Get.dialog(
         Center(child: CircularProgressIndicator()),
         barrierDismissible: false,
       );
 
-      // Delete from Firestore first
       final QuerySnapshot snapshot = await FirebaseFirestore.instance
           .collection('carousel')
           .where('imageUrl', isEqualTo: imageUrl)
@@ -208,14 +197,11 @@ class AdminController extends GetxController {
         await snapshot.docs.first.reference.delete();
       }
 
-      // Then delete from Cloudinary
       final String publicId = CloudinaryService.getPublicIdFromUrl(imageUrl);
       await CloudinaryService.deleteImage(publicId);
 
-      // Close loading dialog
       Get.back();
 
-      // Refresh images
       await controllerHome.fetchCarouselImages();
       Get.snackbar(
         'Success',
@@ -224,7 +210,6 @@ class AdminController extends GetxController {
         colorText: Colors.white,
       );
     } catch (e) {
-      // Close loading dialog if open
       if (Get.isDialogOpen == true) {
         Get.back();
       }

@@ -6,12 +6,24 @@ cloudinary.config({
   api_secret: "W7Fgr9tTSqmmXaW27mDrLzR7uxI",
 });
 
-const uploadImage = async (file) => {
+const uploadImage = async (files) => {
   try {
-    const result = await cloudinary.uploader.upload(file, {
-      folder: "lelangfb",
-    });
-    return result.secure_url;
+    if (Array.isArray(files)) {
+      const uploadPromises = files.map((file) =>
+        cloudinary.uploader.upload(file.filepath, {
+          folder: "lelangfb",
+          resource_type: "auto",
+        })
+      );
+      const results = await Promise.all(uploadPromises);
+      return results.map((result) => result.secure_url);
+    } else {
+      const result = await cloudinary.uploader.upload(files.filepath, {
+        folder: "lelangfb",
+        resource_type: "auto",
+      });
+      return [result.secure_url];
+    }
   } catch (error) {
     console.error("Error uploading to Cloudinary:", error);
     throw error;

@@ -12,6 +12,7 @@ class UpcomingAuctionCard extends StatelessWidget {
   final DateTime date;
   final String startTime;
   final VoidCallback onTap;
+  final String category; // Add this line
 
   const UpcomingAuctionCard({
     Key? key,
@@ -23,6 +24,7 @@ class UpcomingAuctionCard extends StatelessWidget {
     required this.date,
     required this.startTime,
     required this.onTap,
+    this.category = 'Others', // Add this line with default value
   }) : super(key: key);
 
   String _formatDate(DateTime date) {
@@ -83,30 +85,38 @@ class UpcomingAuctionCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                // Updated start time badge to match category style
                 Positioned(
-                  top: 8,
+                  bottom: 8,
                   left: 8,
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.white),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.access_time, size: 12, color: Colors.white),
+                        Icon(Icons.access_time, size: 10, color: Colors.black),
                         SizedBox(width: 4),
                         Text(
-                          'Start $startTime WIB',
+                          startTime,
                           style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
+                            color: Colors.black,
+                            fontSize: 8,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
                   ),
+                ),
+                // Category badge remains at bottom-right
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: _buildBadge(category, Colors.white, isCategory: true),
                 ),
               ],
             ),
@@ -200,7 +210,28 @@ class UpcomingAuctionCard extends StatelessWidget {
     );
   }
 
-  Widget _buildBadge(String text, Color color) {
+  Widget _buildBadge(String text, Color color, {bool isCategory = false}) {
+    if (isCategory) {
+      return Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: 4,
+          vertical: 2,
+        ),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: color),
+        ),
+        child: Text(
+          text.toUpperCase(),
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 8,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+    }
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: 4,

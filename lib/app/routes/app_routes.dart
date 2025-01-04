@@ -37,4 +37,5 @@ abstract class _Paths {
   static const ONBOARDING = '/onboarding';
   static const MYITEMS = '/myitems';
   static const ADMIN = '/admin';
+  static const LIVE_AUCTION = '/live-auction';
 }

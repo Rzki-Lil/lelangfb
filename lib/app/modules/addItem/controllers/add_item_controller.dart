@@ -6,10 +6,9 @@ import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http;
+import 'package:lelang_fb/app/modules/home/controllers/home_controller.dart';
 import 'package:lelang_fb/core/constants/color.dart';
 import 'package:path/path.dart' as path;
-import 'dart:convert';
 import '../../../services/location_service.dart';
 import '../../../services/cloudinary_service.dart';
 
@@ -23,17 +22,12 @@ class AddItemController extends GetxController {
   final locationController = TextEditingController();
   final descriptionController = TextEditingController();
   final dateController = TextEditingController();
-  final timeController = TextEditingController();
   final startTimeController = TextEditingController();
   final endTimeController = TextEditingController();
 
   var isLoading = false.obs;
   var selectedValue = ''.obs;
   var images = <File>[].obs;
-  var currentPage = 0.obs;
-
-  final CarouselSliderController carouselController =
-      CarouselSliderController();
 
   final ImagePicker picker = ImagePicker();
   List<String> categoryList = [
@@ -45,10 +39,8 @@ class AddItemController extends GetxController {
     'Others'
   ].obs;
 
-  var selectedCategory = ''.obs;
   var selectedDate = DateTime.now().obs;
 
-  var hasSTNK = true.obs;
   var isExpanded1 = false.obs;
   var isExpanded2 = false.obs;
 
@@ -78,7 +70,6 @@ class AddItemController extends GetxController {
   final selectedMinute = 0.obs;
   final isAm = true.obs;
 
-  // Add focus node for price field
   final FocusNode priceFocus = FocusNode();
 
   Future<void> pickThumbnailImage() async {
@@ -127,39 +118,42 @@ class AddItemController extends GetxController {
     }
   }
 
-  void removeImage(int index) {
-    if (index >= 0 && index < images.length) {
-      images.removeAt(index);
-
-      if (images.isEmpty) {
-        currentPage.value = 0;
-      } else {
-        if (currentPage.value >= images.length) {
-          currentPage.value = images.length - 1;
-        }
-      }
-    }
-  }
-
-  void onImageAdded() {
-    carouselController.animateToPage(images.length - 1);
-    currentPage.value = images.length - 1;
-  }
-
   Future<void> showDatePicker() async {
-    final DateTime? picked = await Get.dialog(
-      DatePickerDialog(
-        initialDate: selectedDate.value,
-        firstDate: DateTime.now(),
-        lastDate: DateTime(2025),
-      ),
-    );
-    if (picked != null) {
-      selectedDate.value = picked;
-      String formattedDate = formatDate(picked);
-      selectedDateStr.value = formattedDate;
-      dateController.text = formattedDate;
-      update();
+    try {
+      final now = DateTime.now();
+      final picked = await showDialog<DateTime>(
+        context: Get.context!,
+        builder: (BuildContext context) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: Theme.of(context).colorScheme.copyWith(
+                    primary: AppColors.hijauTua,
+                  ),
+            ),
+            child: DatePickerDialog(
+              initialDate: selectedDate.value,
+              firstDate: now,
+              lastDate: DateTime(now.year + 1),
+            ),
+          );
+        },
+      );
+
+      if (picked != null) {
+        selectedDate.value = picked;
+        String formattedDate = formatDate(picked);
+        selectedDateStr.value = formattedDate;
+        dateController.text = formattedDate;
+        update();
+      }
+    } catch (e) {
+      print('Error showing date picker: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to show date picker',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
   }
 
@@ -383,28 +377,47 @@ class AddItemController extends GetxController {
       if (!validateForm()) return;
       isLoading.value = true;
 
-      if (locationController.text.trim().isEmpty) {
-        Get.snackbar('Error', 'Please enter location',
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        Get.snackbar('Error', 'Please login first',
             backgroundColor: Colors.red, colorText: Colors.white);
         return;
       }
 
       List<String> allImageUrls = [];
-      List<File> allImages = [];
 
       if (thumbnailImage.value != null) {
-        allImages.add(thumbnailImage.value!);
+        try {
+          final thumbnailUrl = await CloudinaryService.uploadImage(
+            thumbnailImage.value!,
+            folder: 'items/${user.uid}',
+            filename:
+                '${DateTime.now().millisecondsSinceEpoch}_thumbnail${path.extension(thumbnailImage.value!.path)}',
+          );
+          allImageUrls.add(thumbnailUrl);
+        } catch (e) {
+          print('Error uploading thumbnail: $e');
+          throw e;
+        }
       }
-      allImages.addAll(carouselImages);
 
-      if (allImages.isNotEmpty) {
-        allImageUrls = await CloudinaryService.uploadImages(allImages);
-        print('Debug - Uploaded image URLs: $allImageUrls');
+      for (var image in carouselImages) {
+        try {
+          final imageUrl = await CloudinaryService.uploadImage(
+            image,
+            folder: 'items/${user.uid}',
+            filename:
+                '${DateTime.now().millisecondsSinceEpoch}_${path.basename(image.path)}',
+          );
+          allImageUrls.add(imageUrl);
+        } catch (e) {
+          print('Error uploading carousel image: $e');
+          throw e;
+        }
       }
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        Get.snackbar('Error', 'Please login first',
+      if (locationController.text.trim().isEmpty) {
+        Get.snackbar('Error', 'Please enter location',
             backgroundColor: Colors.red, colorText: Colors.white);
         return;
       }
@@ -432,11 +445,18 @@ class AddItemController extends GetxController {
       print('Debug - Saving item data: $itemData');
       await FirebaseFirestore.instance.collection('items').add(itemData);
 
-      Get.snackbar('Success', 'Item added successfully',
-          backgroundColor: Colors.green, colorText: Colors.white);
+      Get.snackbar(
+        'Success',
+        'Item added successfully',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
 
       _clearForm();
-      Get.back();
+
+      final homeController = Get.find<HomeController>();
+      homeController.selectedPage.value = 0;
+      Get.offAllNamed('/home');
     } catch (e) {
       Get.dialog(
         Dialog(
@@ -634,20 +654,12 @@ class AddItemController extends GetxController {
     return true;
   }
 
-  int _compareTime(TimeOfDay time1, TimeOfDay time2) {
-    if (time1.hour != time2.hour) {
-      return time1.hour - time2.hour;
-    }
-    return time1.minute - time2.minute;
-  }
-
   void _clearForm() {
     nameController.clear();
     priceController.clear();
     locationController.clear();
     descriptionController.clear();
     dateController.clear();
-    timeController.clear();
     startTimeController.clear();
     endTimeController.clear();
     selectedValue.value = '';
@@ -670,7 +682,6 @@ class AddItemController extends GetxController {
     super.onInit();
     loadProvinces();
 
-    // Remove the existing price controller listener and add the new one
     priceController.addListener(() {
       final text = priceController.text;
       if (text.isNotEmpty) {
@@ -779,7 +790,6 @@ class AddItemController extends GetxController {
     locationController.dispose();
     descriptionController.dispose();
     dateController.dispose();
-    timeController.dispose();
     startTimeController.dispose();
     endTimeController.dispose();
     selectedProvince.value = null;
@@ -789,13 +799,11 @@ class AddItemController extends GetxController {
     super.onClose();
   }
 
-  // Modify onPriceChanged method
   void onPriceChanged(String value) {
     if (value.isEmpty) {
       return;
     }
 
-    // Only process if there are actual changes
     if (value == priceController.text) {
       return;
     }
@@ -803,21 +811,11 @@ class AddItemController extends GetxController {
     // Remove any non-digit characters
     String numericOnly = value.replaceAll(RegExp(r'[^0-9]'), '');
 
-
     priceController.value = TextEditingValue(
       text: numericOnly,
       selection: TextSelection.fromPosition(
         TextPosition(offset: numericOnly.length),
       ),
-    );
-  }
-
-
-  String formatPrice(String price) {
-    if (price.isEmpty) return '';
-    return price.replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
     );
   }
 

@@ -8,6 +8,7 @@ class CloudinaryService {
   static const String cloudName = 'dxc6a1qww';
   static const String apiKey = '737978153918162';
   static const String apiSecret = 'W7Fgr9tTSqmmXaW27mDrLzR7uxI';
+  static const String uploadPreset = 'lelangfb';
 
   static Future<List<String>> uploadImages(List<File> images,
       {String folder = 'lelang_img'}) async {
@@ -15,93 +16,112 @@ class CloudinaryService {
 
     for (var image in images) {
       try {
-        var request = http.MultipartRequest(
-          'POST',
-          Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload'),
-        );
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = '${timestamp}_${path.basename(image.path)}';
 
-        var imageStream = await http.ByteStream(image.openRead());
-        var length = await image.length();
+        var uri = Uri.parse(
+            'https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+        var request = http.MultipartRequest('POST', uri);
 
-        var multipartFile = http.MultipartFile(
+        final signature = generateSignature('', timestamp.toString());
+
+        request.fields.addAll({
+          'api_key': apiKey,
+          'timestamp': timestamp.toString(),
+          'signature': signature,
+          'folder': folder,
+        });
+
+        var multipartFile = await http.MultipartFile.fromPath(
           'file',
-          imageStream,
-          length,
-          filename: path.basename(image.path),
+          image.path,
+          filename: fileName,
         );
 
         request.files.add(multipartFile);
-        request.fields['upload_preset'] = 'lelangfb';
-        request.fields['folder'] = folder;
 
         var streamedResponse = await request.send();
         var response = await http.Response.fromStream(streamedResponse);
 
         if (response.statusCode == 200) {
-          final responseData = json.decode(response.body);
-          final url = responseData['secure_url'];
-          if (url != null) {
-            imageUrls.add(url);
-            print('Successfully uploaded image: $url');
-          } else {
-            throw Exception('No secure_url in response');
-          }
+          var jsonResponse = json.decode(response.body);
+          imageUrls.add(jsonResponse['secure_url']);
+          print('Successfully uploaded image: ${jsonResponse['secure_url']}');
         } else {
-          print(
-              'Upload failed with status ${response.statusCode}: ${response.body}');
+          print('Upload failed with status ${response.statusCode}');
+          print('Error response: ${response.body}');
           throw Exception('Upload failed with status ${response.statusCode}');
         }
       } catch (e) {
         print('Error uploading to Cloudinary: $e');
-        throw e;
+        rethrow;
       }
     }
 
     return imageUrls;
   }
 
-  static Future<String> uploadImage(File image,
-      {String folder = 'carousel'}) async {
+  static Future<void> deleteImageByUrl(String imageUrl) async {
     try {
-      final url =
-          Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+      final publicId = getPublicIdFromUrl(imageUrl);
+      await deleteImage(publicId);
+      print('Successfully deleted image with public ID: $publicId');
+    } catch (e) {
+      print('Error deleting image by URL: $e');
+      throw Exception('Failed to delete image by URL: $e');
+    }
+  }
 
-      var request = http.MultipartRequest('POST', url);
-
-      request.fields['upload_preset'] = 'lelangfb';
-      request.fields['folder'] = folder;
-
-      if (folder == 'users_profile') {
-        request.fields['upload_preset'] =
-            'profile_preset'; // preset profile w500 h500
+  static Future<String> uploadImage(
+    File image, {
+    String folder = 'carousel',
+    String? filename,
+    String? previousImageUrl,
+  }) async {
+    try {
+      if (previousImageUrl != null && previousImageUrl.isNotEmpty) {
+        try {
+          await deleteImageByUrl(previousImageUrl);
+        } catch (e) {
+          print('Error deleting previous image: $e');
+        }
       }
 
-      // Add file
-      var length = await image.length();
-      var stream = http.ByteStream(image.openRead());
-      var multipartFile = http.MultipartFile(
-        'file',
-        stream,
-        length,
-        filename:
-            '${DateTime.now().millisecondsSinceEpoch}_${image.path.split('/').last}',
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final finalFilename =
+          filename ?? '${timestamp}_${path.basename(image.path)}';
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload'),
       );
+
+      request.fields['upload_preset'] = uploadPreset;
+      request.fields['folder'] = folder;
+      request.fields['file_name'] = finalFilename;
+
+      var multipartFile = await http.MultipartFile.fromPath(
+        'file',
+        image.path,
+        filename: finalFilename,
+      );
+
       request.files.add(multipartFile);
 
-      var response = await request.send();
-      var responseData = await response.stream.toBytes();
-      var result = json.decode(String.fromCharCodes(responseData));
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        print('Cloudinary upload successful: ${result['secure_url']}');
-        return result['secure_url'];
+        var jsonResponse = json.decode(response.body);
+        print('Successfully uploaded image: ${jsonResponse['secure_url']}');
+        return jsonResponse['secure_url'];
       } else {
-        print('Cloudinary upload failed with status ${response.statusCode}');
-        print('Error response: ${String.fromCharCodes(responseData)}');
+        print('Upload failed with status ${response.statusCode}');
+        print('Error response: ${response.body}');
         throw Exception('Upload failed with status ${response.statusCode}');
       }
     } catch (e) {
-      print('Detailed error in uploadImage: $e');
+      print('Error in uploadImage: $e');
       rethrow;
     }
   }
@@ -145,6 +165,15 @@ class CloudinaryService {
     try {
       final uri = Uri.parse(url);
       final pathSegments = uri.pathSegments;
+
+      // Handle items folder structure
+      if (pathSegments.contains('items')) {
+        final itemsIndex = pathSegments.indexOf('items');
+        if (itemsIndex < pathSegments.length - 2) {
+          // Return full path including uid subfolder
+          return 'items/${pathSegments[itemsIndex + 1]}/${pathSegments.last.split('.').first}';
+        }
+      }
 
       // Check for users_profile folder
       final profileIndex = pathSegments.indexOf('users_profile');

@@ -4,14 +4,15 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:carousel_slider/carousel_controller.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:lelang_fb/app/utils/live_auction_card.dart';
 import 'package:lelang_fb/app/utils/space.dart';
 import 'package:lelang_fb/app/utils/upcoming_auction_card.dart';
 import 'package:lelang_fb/core/constants/color.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/services.dart'; // Added import
 
 import '../../../../core/assets/assets.gen.dart';
 import '../../../routes/app_pages.dart';
@@ -19,6 +20,7 @@ import '../../../routes/app_pages.dart';
 import '../../../utils/event_card.dart';
 import '../../../utils/text.dart';
 import '../controllers/home_controller.dart';
+import '../../../widgets/home_header.dart';
 
 class Home extends GetView<HomeController> {
   const Home({super.key});
@@ -28,66 +30,21 @@ class Home extends GetView<HomeController> {
     final controller = Get.put(HomeController());
 
     return Scaffold(
+      backgroundColor: Color(0xFFF8F9FA),
       body: CustomScrollView(
         slivers: [
-          //appbar
-          SliverAppBar(
-              pinned: false,
-              title: GestureDetector(
-                onTap: () {
-                  controller.changePage(1);
-                },
-                child: Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(5),
-                    side: BorderSide(color: Colors.grey),
-                  ),
-                  child: Container(
-                    height: 50,
-                    width: double.infinity,
-                    child: Row(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(10),
-                          child: Assets.icons.search
-                              .image(width: 28, color: Colors.grey),
-                        ),
-                        TextCust(
-                          text: "Search",
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 20),
-                  child: InkWell(
-                    onTap: () {
-                      // Get.to(NotifictaionsView());
-                    },
-                    child: Container(
-                      height: 35,
-                      width: 35,
-                      // color: Colors.black,
-                      child: Image.asset(
-                        Assets.icons.notifhighres.path,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                  ),
-                )
-              ]),
+          HomeHeader(
+            onPageChange: controller.changePage,
+            notificationCount: 3,
+            onNotificationTap: () {
+              Get.toNamed(Routes.NOTIFICATIONS);
+            },
+          ),
           Space(height: 10, width: 0),
-          // caraousel image
+          // caraousel
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Stack(
                 children: [
                   Obx(() {
@@ -124,6 +81,7 @@ class Home extends GetView<HomeController> {
                       itemBuilder: (context, index, realIndex) {
                         final imageUrl = controller.carouselImages[index];
                         return Container(
+                          width: 600,
                           margin: EdgeInsets.symmetric(horizontal: 5),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
@@ -149,7 +107,6 @@ class Home extends GetView<HomeController> {
                       },
                     );
                   }),
-                  // Only show indicators if there are multiple images
                   Obx(() => controller.carouselImages.length > 1
                       ? Positioned(
                           bottom: 15,
@@ -185,34 +142,99 @@ class Home extends GetView<HomeController> {
             ),
           ),
           Space(height: 20, width: 0),
-          // menu section
+          // Balance and Transaction Section
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  menuSection(70, 'Antiques', Assets.icons.antiques.path,
-                      AppColors.antiques.withOpacity(0.2), () {
-                    print("antiques");
-                  }),
-                  menuSection(70, 'Auction', Assets.icons.auction.path,
-                      AppColors.auction.withOpacity(0.2), () {
-                    print("auction");
-                  }),
-                  menuSection(70, 'Buy', Assets.icons.keranjang.path,
-                      AppColors.buy.withOpacity(0.2), () {
-                    print("buy");
-                  }),
-                  menuSection(70, 'Sell', Assets.icons.sell.path,
-                      Colors.lightBlue.withOpacity(0.2), () {
-                    print("sell");
-                  }),
+                  // Balance Section with History
+                  InkWell(
+                    onTap: () => _showHistoryDialog(context, controller),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.hijauTua.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.account_balance_wallet_rounded,
+                                color: AppColors.hijauTua,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Obx(() {
+                                final balance = controller.userBalance.value;
+                                return Text(
+                                  'Rp ${balance.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    color: AppColors.hijauTua,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.5,
+                                  ),
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(left: 15),
+                          child: Text(
+                            'Tap to view history',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Transaction Buttons
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTransactionButton(
+                        'Top Up',
+                        Icons.add_circle_outline,
+                        AppColors.hijauTua,
+                        () => _showTopUpDialog(context),
+                      ),
+                      SizedBox(width: 16),
+                      _buildTransactionButton(
+                        'Transfer',
+                        Icons.send_outlined,
+                        AppColors.hijauTua,
+                        () => _showTransferDialog(context),
+                      ),
+                      SizedBox(width: 16),
+                      _buildTransactionButton(
+                        'Withdraw',
+                        Icons.account_balance,
+                        AppColors.hijauTua,
+                        () => _showWithdrawDialog(context),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ),
-          Space(height: 10, width: 0),
+          Space(height: 20, width: 0),
           // Live Auctions Section
           SliverToBoxAdapter(
             child: Container(
@@ -236,18 +258,19 @@ class Home extends GetView<HomeController> {
                               ),
                             ),
                             SizedBox(width: 8),
-                            Image.asset(
-                              'assets/gif/live-now.gif',
-                              height: 45,
-                              width: 45,
-                            ),
                           ],
                         ),
                         TextButton(
-                          onPressed: () => Get.toNamed(Routes.DETAIL_ITEM),
+                          onPressed: () => Get.toNamed(
+                            Routes.SEARCH,
+                            arguments: {
+                              'filter': 'live',
+                              'fromSection': 'liveAuctions',
+                            },
+                          ),
                           child: Text(
                             "View All",
-                            style: TextStyle(color: Colors.white70),
+                            style: TextStyle(color: Colors.white),
                           ),
                         ),
                       ],
@@ -267,23 +290,63 @@ class Home extends GetView<HomeController> {
                             padding: EdgeInsets.symmetric(horizontal: 16),
                             itemCount: controller.liveAuctions.length,
                             itemBuilder: (context, index) {
-                              final item = controller.liveAuctions[index];
-                              return Container(
-                                width: MediaQuery.of(context).size.width *
-                                    0.4, // Adjusted width
-                                margin: EdgeInsets.only(
-                                    right: 10), // Reduced margin
-                                child: LiveAuctionCard(
-                                  imageUrl: item['imageURL'][0],
-                                  name: item['name'],
-                                  price: item['current_price'],
-                                  location: item['lokasi'],
-                                  rarity: item['rarity'],
-                                  onTap: () => Get.toNamed(
-                                    Routes.DETAIL_ITEM,
-                                    arguments: item,
-                                  ),
-                                ),
+                              final doc = controller.liveAuctions[index];
+                              final data = doc.data();
+
+                              final endTimeStr = data['jamSelesai'] as String;
+                              final endTimeParts = endTimeStr.split(':');
+                              final itemDate =
+                                  (data['tanggal'] as Timestamp).toDate();
+
+                              final endTime = DateTime(
+                                itemDate.year,
+                                itemDate.month,
+                                itemDate.day,
+                                int.parse(endTimeParts[0]),
+                                int.parse(endTimeParts[1]),
+                              );
+
+                              return StreamBuilder<int>(
+                                stream: Stream.periodic(
+                                    Duration(seconds: 1), (i) => i),
+                                builder: (context, snapshot) {
+                                  return Container(
+                                    width:
+                                        MediaQuery.of(context).size.width * 0.4,
+                                    margin: EdgeInsets.only(right: 10),
+                                    child: LiveAuctionCard(
+                                      imageUrl: data['imageURL'][0],
+                                      name: data['name'],
+                                      price: (data['current_price'] ?? 0)
+                                          .toDouble(),
+                                      location: data['lokasi'],
+                                      rarity: data['rarity'],
+                                      id: doc.id,
+                                      endTime: endTime,
+                                      bidCount: data['bid_count'] ?? 0,
+                                      onTap: () => Get.toNamed(
+                                        Routes.LIVE_AUCTION,
+                                        arguments: {
+                                          'itemId': doc.id,
+                                          'itemName': data['name'],
+                                          'currentPrice':
+                                              (data['current_price'] ?? 0)
+                                                  .toDouble(),
+                                          'tanggal': data['tanggal'],
+                                          'jamMulai': data['jamMulai'],
+                                          'jamSelesai': data['jamSelesai'],
+                                          'imageUrls': data['imageURL'],
+                                          'location': data['lokasi'],
+                                          'category': data['category'],
+                                          'rarity': data['rarity'],
+                                          'description': data['description'],
+                                          'sellerId': data['seller_id'],
+                                          'bidCount': data['bid_count'] ?? 0,
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
                               );
                             },
                           ),
@@ -311,7 +374,13 @@ class Home extends GetView<HomeController> {
                         ),
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () => Get.toNamed(
+                          Routes.SEARCH,
+                          arguments: {
+                            'filter': 'upcoming',
+                            'fromSection': 'upcomingAuctions',
+                          },
+                        ),
                         child: Text(
                           "View All",
                           style: TextStyle(color: AppColors.hijauTua),
@@ -329,8 +398,8 @@ class Home extends GetView<HomeController> {
                       );
                     }
                     return GridView.builder(
-                      shrinkWrap: true, // Important!
-                      physics: NeverScrollableScrollPhysics(), // Important!
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         childAspectRatio: 0.8,
@@ -348,6 +417,7 @@ class Home extends GetView<HomeController> {
                           rarity: item['rarity'],
                           date: (item['tanggal'] as Timestamp).toDate(),
                           startTime: item['jamMulai'],
+                          category: item['category'] ?? 'Others',
                           onTap: () => Get.toNamed(
                             Routes.DETAIL_ITEM,
                             arguments: item,
@@ -490,8 +560,569 @@ Widget buildEventList(List<Map<String, String>> events) {
         month: event["month"]!,
         time: event["time"]!,
         location: event["location"]!,
-        imageUrl: event["imageURL"]!, // Replace with your image asset path
+        imageUrl: event["imageURL"]!,
       );
     },
+  );
+}
+
+Widget _buildTransactionButton(
+    String label, IconData icon, Color color, VoidCallback onTap) {
+  return InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(12),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[800],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showTopUpDialog(BuildContext context) {
+  final amountController = TextEditingController();
+  final homeController = Get.find<HomeController>();
+
+  Get.dialog(
+    Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Top Up Balance',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Amount',
+                prefixText: 'Rp ',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Get.back(),
+                  child: Text('Cancel'),
+                ),
+                SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    if (amountController.text.isNotEmpty) {
+                      Get.back();
+                      homeController.topUp(double.parse(amountController.text));
+                    }
+                  },
+                  child: Text('Top Up', style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.hijauTua,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+void _showTransferDialog(BuildContext context) {
+  final recipientController = TextEditingController();
+  final amountController = TextEditingController();
+  final homeController = Get.find<HomeController>();
+
+  Get.dialog(
+    Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Transfer Balance',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 20),
+            TextField(
+              controller: recipientController,
+              decoration: InputDecoration(
+                labelText: 'Recipient Email',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 15),
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Amount',
+                prefixText: 'Rp ',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Get.back(),
+                  child: Text('Cancel'),
+                ),
+                SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    if (recipientController.text.isNotEmpty &&
+                        amountController.text.isNotEmpty) {
+                      Get.back();
+                      homeController.transfer(
+                        recipientController.text,
+                        double.parse(amountController.text),
+                      );
+                    }
+                  },
+                  child: Text(
+                    'Transfer',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.hijauTua,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+void _showWithdrawDialog(BuildContext context) {
+  final amountController = TextEditingController();
+  final accountNumberController = TextEditingController();
+  final accountNameController = TextEditingController();
+  final homeController = Get.find<HomeController>();
+  String selectedBank = 'bca';
+
+  Get.dialog(
+    Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Withdraw Balance',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 20),
+            // VA banks
+            DropdownButtonFormField<String>(
+              decoration: InputDecoration(
+                labelText: 'Select Virtual Account Bank',
+                border: OutlineInputBorder(),
+              ),
+              value: selectedBank,
+              items: [
+                DropdownMenuItem(
+                    value: 'bca', child: Text('BCA Virtual Account')),
+                DropdownMenuItem(
+                    value: 'bni', child: Text('BNI Virtual Account')),
+                DropdownMenuItem(
+                    value: 'bri', child: Text('BRI Virtual Account')),
+                DropdownMenuItem(
+                    value: 'mandiri', child: Text('Mandiri Virtual Account')),
+              ],
+              onChanged: (value) => selectedBank = value!,
+            ),
+            SizedBox(height: 15),
+            TextField(
+              controller: accountNumberController,
+              keyboardType: TextInputType.number,
+              maxLength: 19, 
+              decoration: InputDecoration(
+                labelText: 'Account Number',
+                border: OutlineInputBorder(),
+                counterText:
+                    '', 
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(19),
+              ],
+            ),
+            SizedBox(height: 15),
+            TextField(
+              controller: accountNameController,
+              decoration: InputDecoration(
+                labelText: 'Account Name',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 15),
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Amount',
+                prefixText: 'Rp ',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Get.back(),
+                  child: Text('Cancel'),
+                ),
+                SizedBox(width: 10),
+                ElevatedButton(
+                  onPressed: () {
+                    if (amountController.text.isNotEmpty &&
+                        accountNumberController.text.isNotEmpty &&
+                        accountNameController.text.isNotEmpty) {
+                      Get.back();
+                      homeController.withdraw(
+                        double.parse(amountController.text),
+                        selectedBank,
+                        accountNumberController.text,
+                        accountNameController.text,
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.hijauTua,
+                  ),
+                  child:
+                      Text('Withdraw', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+void _showHistoryDialog(BuildContext context, HomeController controller) {
+  Get.dialog(
+    Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Container(
+        height: Get.height * 0.7,
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Transaction History',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () => Get.back(),
+                  ),
+                ],
+              ),
+            ),
+            Divider(),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('transactions')
+                    .where('userId',
+                        isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.history, size: 48, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text('No transactions found'),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: snapshot.data!.docs.length,
+                    itemBuilder: (context, index) {
+                      final transaction = snapshot.data!.docs[index].data()
+                          as Map<String, dynamic>;
+                      final amount = transaction['amount'] ?? 0.0;
+                      final type = transaction['type'] ?? 'Unknown';
+                      final status = transaction['status'] ?? 'unknown';
+                      final isSuccess =
+                          status == 'success' || status == 'completed';
+                      final timestamp = transaction['timestamp'] as Timestamp;
+                      final date = timestamp.toDate();
+
+                      return ListTile(
+                        leading: Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.hijauTua.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            _getTransactionIcon(type),
+                            color: isSuccess ? AppColors.hijauTua : Colors.red,
+                          ),
+                        ),
+                        title: Row(
+                          children: [
+                            Text(
+                              type.toUpperCase(),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
+                            Icon(Icons.chevron_right, size: 16),
+                          ],
+                        ),
+                        subtitle: Text(
+                          '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}',
+                        ),
+                        trailing: Text(
+                          'Rp ${amount.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            color: AppColors.hijauTua,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onTap: () => _showTransactionDetails(transaction),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+    barrierDismissible: true,
+  );
+}
+
+IconData _getTransactionIcon(String type) {
+  switch (type.toLowerCase()) {
+    case 'topup':
+      return Icons.add_circle;
+    case 'transfer':
+      return Icons.send;
+    case 'withdraw':
+      return Icons.account_balance;
+    default:
+      return Icons.swap_horiz;
+  }
+}
+
+void _showTransactionDetails(Map<String, dynamic> transaction) {
+  final type = transaction['type'];
+  final status = transaction['status'] ?? 'unknown';
+
+  Get.dialog(
+    Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Transaction Details',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close),
+                  onPressed: () => Get.back(),
+                ),
+              ],
+            ),
+            Divider(),
+            _buildDetailRow('Type', type.toUpperCase()),
+            _buildDetailRow(
+                'Amount', 'Rp ${transaction['amount']?.toString() ?? '0'}'),
+            _buildDetailRow('Status', status.toUpperCase()),
+            if (transaction['timestamp'] != null)
+              _buildDetailRow(
+                  'Date & Time',
+                  _formatDateTime(
+                      (transaction['timestamp'] as Timestamp).toDate())),
+            if (type == 'transfer' && transaction['recipientEmail'] != null)
+              _buildDetailRow('Recipient', transaction['recipientEmail']),
+            if (type == 'withdraw') ...[
+              if (transaction['bankCode'] != null)
+                _buildDetailRow(
+                    'Bank', transaction['bankCode'].toString().toUpperCase()),
+              if (transaction['accountName'] != null)
+                _buildDetailRow('Account Name', transaction['accountName']),
+              if (transaction['bankAccount'] != null)
+                _buildDetailRow('Account Number', transaction['bankAccount']),
+            ],
+            SizedBox(height: 20),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => Get.back(),
+                child: Text('Close'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+String _formatDateTime(DateTime date) {
+  return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}';
+}
+
+List<Widget> _buildTransactionDetails(Map<String, dynamic> transaction) {
+  final List<Widget> details = [];
+  final type = transaction['type'];
+
+  details.add(_buildDetailRow('Type', type.toUpperCase()));
+  details.add(_buildDetailRow(
+      'Amount', 'Rp ${transaction['amount']?.toString() ?? '0'}'));
+
+  if (transaction['timestamp'] != null) {
+    final date = (transaction['timestamp'] as Timestamp).toDate();
+    details.add(_buildDetailRow('Date & Time',
+        '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}'));
+  }
+
+  switch (type.toLowerCase()) {
+    case 'transfer':
+      if (transaction['recipientEmail'] != null) {
+        details
+            .add(_buildDetailRow('Recipient', transaction['recipientEmail']));
+      }
+      break;
+    case 'withdraw':
+      if (transaction['bankCode'] != null) {
+        details.add(_buildDetailRow(
+            'Bank', transaction['bankCode'].toString().toUpperCase()));
+      }
+      if (transaction['accountName'] != null) {
+        details
+            .add(_buildDetailRow('Account Name', transaction['accountName']));
+      }
+      if (transaction['bankAccount'] != null) {
+        details
+            .add(_buildDetailRow('Account Number', transaction['bankAccount']));
+      }
+      if (transaction['status'] != null) {
+        details.add(_buildDetailRow(
+            'Status', transaction['status'].toString().toUpperCase()));
+      }
+      break;
+  }
+
+  return details;
+}
+
+Widget _buildDetailRow(String label, String value) {
+  return Padding(
+    padding: EdgeInsets.symmetric(vertical: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 120,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    ),
   );
 }

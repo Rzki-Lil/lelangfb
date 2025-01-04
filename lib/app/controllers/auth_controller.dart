@@ -15,7 +15,6 @@ class AuthController extends GetxController {
   RxBool rememberMe = false.obs;
   RxBool isGuest = false.obs;
 
-  // Tambahkan storage key untuk guest ID
   static const String GUEST_ID_KEY = 'guest_user_id';
 
   Stream<User?> get streamAuthStatus => _auth.authStateChanges();
@@ -100,7 +99,6 @@ class AuthController extends GetxController {
       final docSnapshot = await userRef.get();
 
       if (!docSnapshot.exists) {
-        // Create new user document
         await userRef.set({
           'uid': user.uid,
           'email': user.email,
@@ -114,11 +112,8 @@ class AuthController extends GetxController {
           'totalItems': 0,
           'rating': 0.0,
           'ratingCount': 0,
-          'followers': 0,
-          'following': 0,
         });
       } else {
-        //klo ada data ga update photo url
         final existingData = docSnapshot.data()!;
         await userRef.update({
           'email': user.email,
@@ -141,7 +136,6 @@ class AuthController extends GetxController {
         password: password,
       );
       if (userCredential.user != null) {
-        // dapetin data user yang ada
         final docSnapshot = await FirebaseFirestore.instance
             .collection('users')
             .doc(userCredential.user!.uid)
@@ -149,7 +143,6 @@ class AuthController extends GetxController {
 
         if (docSnapshot.exists) {
           final existingData = docSnapshot.data()!;
-          //update data
           await FirebaseFirestore.instance
               .collection('users')
               .doc(userCredential.user!.uid)
@@ -227,7 +220,6 @@ class AuthController extends GetxController {
         final User? user = userCredential.user;
 
         if (user != null) {
-          // Check for existing user data first
           final docSnapshot = await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
@@ -235,12 +227,10 @@ class AuthController extends GetxController {
 
           if (docSnapshot.exists) {
             final existingData = docSnapshot.data()!;
-            // Only update if there's no existing custom photo
             if (existingData['photoURL'] == null ||
                 existingData['photoURL'] == '') {
               await createOrUpdateUserData(user);
             } else {
-              // Update other fields but preserve the existing photoURL
               await FirebaseFirestore.instance
                   .collection('users')
                   .doc(user.uid)
@@ -254,12 +244,10 @@ class AuthController extends GetxController {
               });
             }
           } else {
-            // New user, create with Google photo
             await createOrUpdateUserData(user);
           }
 
           printUserInfo(user);
-          // Hapus clearLoginInfo di sini
           rememberMe.value = false;
           navigateToHome();
           Get.snackbar('Berhasil', 'Masuk sebagai ${user.displayName}');
@@ -298,7 +286,6 @@ class AuthController extends GetxController {
 
   Future<void> loginAsGuest() async {
     try {
-      // Check if we already have a guest account stored
       SharedPreferences prefs = await SharedPreferences.getInstance();
       String? existingGuestId = prefs.getString(GUEST_ID_KEY);
 
@@ -342,7 +329,6 @@ class AuthController extends GetxController {
     isGuest.value = _auth.currentUser?.isAnonymous ?? false;
   }
 
-  @override
   void logout() async {
     if (isGuest.value) {
       SharedPreferences prefs = await SharedPreferences.getInstance();

@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:lelang_fb/app/modules/profile/controllers/phone_verification_controller.dart';
 
 import 'package:lelang_fb/app/modules/profile/controllers/transaction_controller.dart';
 
@@ -13,5 +14,7 @@ class ProfileBinding extends Bindings {
     Get.lazyPut<ProfileController>(
       () => ProfileController(),
     );
+    Get.lazyPut<PhoneVerificationController>(
+        () => PhoneVerificationController());
   }
 }

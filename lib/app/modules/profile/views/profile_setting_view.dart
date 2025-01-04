@@ -8,7 +8,7 @@ import 'package:lelang_fb/app/utils/custom_text_field.dart';
 import 'package:lelang_fb/app/utils/text.dart';
 import 'package:lelang_fb/core/constants/color.dart';
 import 'package:lelang_fb/app/utils/buttons.dart';
-
+import '../../../widgets/header.dart';
 import '../../../../core/assets/assets.gen.dart';
 import '../controllers/profile_controller.dart';
 
@@ -19,9 +19,38 @@ class ProfileSettingView extends GetView<ProfileController> {
     final controller = Get.put(ProfileController());
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size(double.infinity, 70),
-        child: appbarCust(title: 'Profile Settings'),
+      backgroundColor: Color(0xFFF8F9FA),
+      appBar: Header(
+        titleWidget: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Profile Settings',
+              style: TextStyle(
+                color: AppColors.hijauTua,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            SizedBox(width: 8),
+            Icon(
+              Icons.insert_photo,
+              color: AppColors.hijauTua,
+              size: 24,
+            ),
+          ],
+        ),
+        backgroundColor: Colors.white,
+        leading: Container(
+          margin: EdgeInsets.only(left: 16),
+          child: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: AppColors.hijauTua), // Changed to regular arrow_back
+            onPressed: () => Get.back(),
+          ),
+        ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -135,10 +164,8 @@ class ProfileSettingView extends GetView<ProfileController> {
                           ],
                         ),
                         TextCust(
-                            text: controller.profileCompleteness.value == 100
-                                ? "Your profile is complete!"
-                                : "Complete your profile to make it easier\nfor you to use application",
-                            fontSize: 12)
+                            text: controller.profileStatusMessage.value,
+                            fontSize: 12),
                       ],
                     )
                   ],

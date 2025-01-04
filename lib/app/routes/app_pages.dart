@@ -2,8 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lelang_fb/app/modules/admin/bindings/admin_binding.dart';
 import 'package:lelang_fb/app/modules/admin/views/admin_view.dart';
+import 'package:lelang_fb/app/modules/closed_auctions/controllers/closed_auctions_controller.dart';
+import 'package:lelang_fb/app/modules/closed_auctions/views/closed_auctions_view.dart';
 import 'package:lelang_fb/app/modules/list_favorite/bindings/list_favorite_binding.dart';
 import 'package:lelang_fb/app/modules/list_favorite/views/list_favorite_view.dart';
+import 'package:lelang_fb/app/modules/live_auction/bindings/live_auction_binding.dart';
+import 'package:lelang_fb/app/modules/live_auction/views/live_auction_view.dart';
 import 'package:lelang_fb/app/modules/myitems/bindings/myitems_binding.dart';
 import 'package:lelang_fb/app/modules/myitems/views/myitems_view.dart';
 import 'package:lelang_fb/app/modules/notifications/bindings/notifications_binding.dart';
@@ -35,7 +39,7 @@ import '../modules/splash/views/splash_view.dart';
 part 'app_routes.dart';
 
 abstract class Routes {
-  Routes._(); // Private constructor to prevent instantiation
+  Routes._();
 
   static const HOME = _Paths.HOME;
   static const LOGIN = _Paths.LOGIN;
@@ -52,6 +56,8 @@ abstract class Routes {
   static const ONBOARDING = _Paths.ONBOARDING;
   static const MYITEMS = _Paths.MYITEMS;
   static const ADMIN = _Paths.ADMIN;
+  static const LIVE_AUCTION = _Paths.LIVE_AUCTION;
+  static const CLOSED_AUCTION = '/closed-auction';
 }
 
 class AppPages {
@@ -97,7 +103,7 @@ class AppPages {
     ),
     GetPage(
       name: Routes.ADD_ITEM,
-      page: () => const AddItemView(),
+      page: () => AddItemView(),
       binding: AddItemBinding(),
       transition: Transition.fadeIn,
     ),
@@ -109,7 +115,7 @@ class AppPages {
     ),
     GetPage(
       name: Routes.NOTIFICATIONS,
-      page: () => const NotifictaionsView(),
+      page: () => const NotificationsView(),
       binding: NotificationsBinding(),
       transition: Transition.fadeIn,
     ),
@@ -142,6 +148,19 @@ class AppPages {
       page: () => AdminView(),
       binding: AdminBinding(),
       transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: Routes.LIVE_AUCTION,
+      page: () => const LiveAuctionView(),
+      binding: LiveAuctionBinding(),
+      transition: Transition.fadeIn,
+    ),
+    GetPage(
+      name: Routes.CLOSED_AUCTION, // Add this route constant
+      page: () => const ClosedAuctionsView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut<ClosedAuctionsController>(() => ClosedAuctionsController());
+      }),
     ),
   ];
 }

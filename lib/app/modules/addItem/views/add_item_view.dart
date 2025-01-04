@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:lelang_fb/app/widgets/header.dart';
 import 'package:lelang_fb/core/constants/color.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import '../../../../core/assets/assets.gen.dart';
@@ -8,9 +9,9 @@ import '../../../utils/input_decorations.dart';
 
 import '../../../utils/buttons.dart';
 import '../../../utils/custom_text_field.dart';
-import '../../../utils/text.dart';
+
 import '../../home/controllers/home_controller.dart';
-import '../../home/views/home.dart';
+
 import '../controllers/add_item_controller.dart';
 import 'package:flutter/services.dart';
 
@@ -19,7 +20,6 @@ class AddItemView extends GetView<AddItemController> {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(AddItemController());
-    final controllerHome = Get.put(HomeController());
 
     // ever(Get.reference, (_) {
     //   if (!Get.isRegistered<AddItemController>()) {
@@ -28,12 +28,21 @@ class AddItemView extends GetView<AddItemController> {
     // });
 
     return Scaffold(
-      appBar: PreferredSize(
-          preferredSize: Size(double.infinity, 50),
-          child: appbarSearch(
-            controllerHome: controllerHome,
-            widget: true,
-          )),
+      backgroundColor: Color(0xFFF8F9FA),
+      appBar: Header(
+        title: 'Search Items',
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon:
+              Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.hijauTua),
+          onPressed: () {
+            Get.back();
+            final homeController = Get.find<HomeController>();
+            homeController.selectedPage.value = 0;
+          },
+        ),
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -80,454 +89,492 @@ class AddItemView extends GetView<AddItemController> {
                   Container(
                     margin: EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
+                        )
+                      ],
                     ),
-                    child: Obx(() => ExpansionTile(
-                          initiallyExpanded: controller.isExpanded1.value,
-                          onExpansionChanged: (expanded) =>
-                              controller.isExpanded1.value = expanded,
-                          title: Text('Item Information',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: AppColors.hijauTua)),
-                          subtitle: Text(
-                              'Basic details about your auction item',
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey)),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CustomTextField(
-                                    controller: controller.nameController,
-                                    labelText: 'Item Name',
-                                  ),
-                                  SizedBox(height: 16),
+                    child: Theme(
+                      data: Theme.of(context).copyWith(
+                        dividerColor:
+                            Colors.transparent, // This removes the top border
+                        colorScheme: Theme.of(context).colorScheme.copyWith(
+                              // This removes the dark outline
+                              outline: Colors.transparent,
+                            ),
+                      ),
+                      child: Obx(() => ExpansionTile(
+                            initiallyExpanded: controller.isExpanded1.value,
+                            onExpansionChanged: (expanded) =>
+                                controller.isExpanded1.value = expanded,
+                            title: Text('Item Information',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: AppColors.hijauTua)),
+                            subtitle: Text(
+                                'Basic details about your auction item',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    CustomTextField(
+                                      controller: controller.nameController,
+                                      labelText: 'Item Name',
+                                    ),
+                                    SizedBox(height: 16),
 
-                                  DropdownButtonFormField<String>(
-                                    value:
-                                        controller.selectedValue.value.isEmpty
-                                            ? null
-                                            : controller.selectedValue.value,
-                                    isExpanded: true,
-                                    style: TextStyle(
-                                      color: AppColors.hijauTua,
-                                      fontSize: 14,
-                                    ),
-                                    decoration: CustomInputDecoration
-                                        .buildInputDecoration(
-                                      labelText: 'Category',
-                                      icon: Icons.category,
-                                      hasValue: controller
-                                          .selectedValue.value.isNotEmpty,
-                                    ),
-                                    items: controller.categoryList
-                                        .map((item) => DropdownMenuItem(
-                                              value: item,
-                                              child: Text(item),
-                                            ))
-                                        .toList(),
-                                    onChanged: (newValue) {
-                                      if (newValue != null) {
-                                        controller.selectedValue.value =
-                                            newValue;
-                                      }
-                                    },
-                                  ),
-                                  SizedBox(height: 16),
-                                  // Remove the Status Dropdown section completely
-
-                                  // Add Rarity Dropdown
-                                  DropdownButtonFormField<String>(
-                                    value:
-                                        controller.selectedRarity.value.isEmpty
-                                            ? null
-                                            : controller.selectedRarity.value,
-                                    isExpanded: true,
-                                    style: TextStyle(
-                                      color: AppColors.hijauTua,
-                                      fontSize: 14,
-                                    ),
-                                    decoration: CustomInputDecoration
-                                        .buildInputDecoration(
-                                      labelText: 'Rarity',
-                                      icon: Icons.stars,
-                                      hasValue: controller
-                                          .selectedRarity.value.isNotEmpty,
-                                    ),
-                                    items: controller.rarityList
-                                        .map((rarity) => DropdownMenuItem(
-                                              value: rarity,
-                                              child: Text(rarity),
-                                            ))
-                                        .toList(),
-                                    onChanged: (newValue) {
-                                      if (newValue != null) {
-                                        controller.selectedRarity.value =
-                                            newValue;
-                                      }
-                                    },
-                                  ),
-                                  SizedBox(height: 16),
-
-                                  CustomTextField(
-                                    controller: controller.priceController,
-                                    focusNode: controller.priceFocus,
-                                    labelText: 'Starting Price',
-                                    keyboardType: TextInputType.number,
-                                    prefix: Text(
-                                      'Rp ',
+                                    DropdownButtonFormField<String>(
+                                      value:
+                                          controller.selectedValue.value.isEmpty
+                                              ? null
+                                              : controller.selectedValue.value,
+                                      isExpanded: true,
                                       style: TextStyle(
                                         color: AppColors.hijauTua,
                                         fontSize: 14,
                                       ),
+                                      decoration: CustomInputDecoration
+                                          .buildInputDecoration(
+                                        labelText: 'Category',
+                                        icon: Icons.category,
+                                        hasValue: controller
+                                            .selectedValue.value.isNotEmpty,
+                                      ),
+                                      items: controller.categoryList
+                                          .map((item) => DropdownMenuItem(
+                                                value: item,
+                                                child: Text(item),
+                                              ))
+                                          .toList(),
+                                      onChanged: (newValue) {
+                                        if (newValue != null) {
+                                          controller.selectedValue.value =
+                                              newValue;
+                                        }
+                                      },
                                     ),
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                    ],
-                                    onChanged: (value) {
-                                      controller.onPriceChanged(value);
-                                    },
-                                  ),
-                                  SizedBox(height: 16),
-                                ],
+                                    SizedBox(height: 16),
+                                    // Remove the Status Dropdown section completely
+
+                                    // Add Rarity Dropdown
+                                    DropdownButtonFormField<String>(
+                                      value: controller
+                                              .selectedRarity.value.isEmpty
+                                          ? null
+                                          : controller.selectedRarity.value,
+                                      isExpanded: true,
+                                      style: TextStyle(
+                                        color: AppColors.hijauTua,
+                                        fontSize: 14,
+                                      ),
+                                      decoration: CustomInputDecoration
+                                          .buildInputDecoration(
+                                        labelText: 'Rarity',
+                                        icon: Icons.stars,
+                                        hasValue: controller
+                                            .selectedRarity.value.isNotEmpty,
+                                      ),
+                                      items: controller.rarityList
+                                          .map((rarity) => DropdownMenuItem(
+                                                value: rarity,
+                                                child: Text(rarity),
+                                              ))
+                                          .toList(),
+                                      onChanged: (newValue) {
+                                        if (newValue != null) {
+                                          controller.selectedRarity.value =
+                                              newValue;
+                                        }
+                                      },
+                                    ),
+                                    SizedBox(height: 16),
+
+                                    CustomTextField(
+                                      controller: controller.priceController,
+                                      focusNode: controller.priceFocus,
+                                      labelText: 'Starting Price',
+                                      keyboardType: TextInputType.number,
+                                      prefix: Text(
+                                        'Rp ',
+                                        style: TextStyle(
+                                          color: AppColors.hijauTua,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      inputFormatters: [
+                                        FilteringTextInputFormatter.digitsOnly,
+                                      ],
+                                      onChanged: (value) {
+                                        controller.onPriceChanged(value);
+                                      },
+                                    ),
+                                    SizedBox(height: 16),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        )),
+                            ],
+                          )),
+                    ),
                   ),
 
-                  // Section 2
+                  // Section 2: Auction Schedule
                   Container(
                     margin: EdgeInsets.symmetric(vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
+                        )
+                      ],
                     ),
-                    child: Obx(() => ExpansionTile(
-                          initiallyExpanded: controller.isExpanded2.value,
-                          onExpansionChanged: (expanded) =>
-                              controller.isExpanded2.value = expanded,
-                          title: Text('Auction Schedule',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: AppColors.hijauTua)),
-                          subtitle: Text(
-                              'Set your auction timeline and location',
-                              style:
-                                  TextStyle(fontSize: 12, color: Colors.grey)),
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    margin: EdgeInsets.only(bottom: 16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                          color: Colors.grey.shade300),
-                                    ),
-                                    child: ListTile(
-                                      leading: Icon(Icons.calendar_today,
-                                          color: AppColors.hijauTua),
-                                      title: Text(
-                                        'Auction Date',
-                                        style: TextStyle(
+                    child: Theme(
+                      data: Theme.of(context).copyWith(
+                        dividerColor:
+                            Colors.transparent, // This removes the top border
+                        colorScheme: Theme.of(context).colorScheme.copyWith(
+                              // This removes the dark outline
+                              outline: Colors.transparent,
+                            ),
+                      ),
+                      child: Obx(() => ExpansionTile(
+                            initiallyExpanded: controller.isExpanded2.value,
+                            onExpansionChanged: (expanded) =>
+                                controller.isExpanded2.value = expanded,
+                            title: Text('Auction Schedule',
+                                style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: AppColors.hijauTua)),
+                            subtitle: Text(
+                                'Set your auction timeline and location',
+                                style: TextStyle(
+                                    fontSize: 12, color: Colors.grey)),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      margin: EdgeInsets.only(bottom: 16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                            color: Colors.grey.shade300),
+                                      ),
+                                      child: ListTile(
+                                        leading: Icon(Icons.calendar_today,
                                             color: AppColors.hijauTua),
-                                      ),
-                                      trailing: GetX<AddItemController>(
-                                        builder: (controller) => Text(
-                                          controller.selectedDateStr.value,
+                                        title: Text(
+                                          'Auction Date',
                                           style: TextStyle(
-                                              color: AppColors.hijauTua,
-                                              fontSize: 14),
+                                              color: AppColors.hijauTua),
                                         ),
+                                        trailing: GetX<AddItemController>(
+                                          builder: (controller) => Text(
+                                            controller.selectedDateStr.value,
+                                            style: TextStyle(
+                                                color: AppColors.hijauTua,
+                                                fontSize: 14),
+                                          ),
+                                        ),
+                                        onTap: controller.showDatePicker,
                                       ),
-                                      onTap: controller.showDatePicker,
                                     ),
-                                  ),
 
-                                  // Time Range Picker
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Start Time Picker
-                                      Container(
-                                        margin: EdgeInsets.only(bottom: 16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          border: Border.all(
-                                              color: Colors.grey.shade300),
-                                        ),
-                                        child: ListTile(
-                                          leading: Icon(Icons.access_time,
-                                              color: AppColors.hijauTua),
-                                          title: Text('Start Time',
-                                              style: TextStyle(
-                                                  color: AppColors.hijauTua)),
-                                          trailing: Obx(() => Text(
-                                                controller
-                                                    .selectedStartTime.value,
-                                                style: TextStyle(
-                                                    color: controller
-                                                                .selectedStartTime
-                                                                .value ==
-                                                            '00:00'
-                                                        ? Colors.grey
-                                                        : AppColors.hijauTua,
-                                                    fontSize: 14),
-                                              )),
-                                          onTap: () =>
-                                              controller.showTimePicker(true),
-                                        ),
-                                      ),
-
-                                      // End Time Picker
-                                      Container(
-                                        margin: EdgeInsets.only(bottom: 16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          border: Border.all(
-                                              color: Colors.grey.shade300),
-                                        ),
-                                        child: ListTile(
-                                          leading: Icon(Icons.access_time,
-                                              color: AppColors.hijauTua),
-                                          title: Text('End Time',
-                                              style: TextStyle(
-                                                  color: AppColors.hijauTua)),
-                                          trailing: Obx(() => Text(
-                                                controller
-                                                    .selectedEndTime.value,
-                                                style: TextStyle(
-                                                    color: controller
-                                                                .selectedEndTime
-                                                                .value ==
-                                                            '23:59'
-                                                        ? Colors.grey
-                                                        : AppColors.hijauTua,
-                                                    fontSize: 14),
-                                              )),
-                                          onTap: () =>
-                                              controller.showTimePicker(false),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  // Location Selection
-                                  Container(
-                                    margin: EdgeInsets.only(top: 16),
-                                    child: Column(
+                                    // Time Range Picker
+                                    Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        // Province Dropdown with Search
-                                        DropdownSearch<Province>(
-                                          popupProps: PopupProps.menu(
-                                            showSearchBox: true,
-                                            searchFieldProps: TextFieldProps(
-                                              decoration: InputDecoration(
-                                                hintText: 'Search province...',
-                                                prefixIcon: Icon(Icons.search,
-                                                    size: 20),
-                                                border: OutlineInputBorder(),
-                                                isDense:
-                                                    true, // Make the search input more compact
-                                                contentPadding:
-                                                    EdgeInsets.symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 8),
-                                              ),
-                                            ),
-                                            constraints: BoxConstraints(
-                                                maxHeight:
-                                                    400), // Limit popup height
-                                            showSelectedItems: true,
-                                            searchDelay:
-                                                Duration(milliseconds: 100),
-                                            containerBuilder:
-                                                (context, popupWidget) =>
-                                                    Container(
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.grey
-                                                        .withOpacity(0.1),
-                                                    spreadRadius: 5,
-                                                    blurRadius: 7,
-                                                    offset: Offset(0, 3),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: popupWidget,
-                                            ),
+                                        // Start Time Picker
+                                        Container(
+                                          margin: EdgeInsets.only(bottom: 16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            border: Border.all(
+                                                color: Colors.grey.shade300),
                                           ),
-                                          compareFn: (Province? p1,
-                                                  Province? p2) =>
-                                              p1?.id == p2?.id, // Add this line
-                                          dropdownDecoratorProps:
-                                              DropDownDecoratorProps(
-                                            dropdownSearchDecoration:
-                                                CustomInputDecoration
-                                                    .buildDropdownSearchDecoration(
-                                              labelText: 'Province',
-                                              icon: Icons.location_on,
-                                              hasValue: controller
-                                                      .selectedProvince.value !=
-                                                  null,
-                                            ),
+                                          child: ListTile(
+                                            leading: Icon(Icons.access_time,
+                                                color: AppColors.hijauTua),
+                                            title: Text('Start Time',
+                                                style: TextStyle(
+                                                    color: AppColors.hijauTua)),
+                                            trailing: Obx(() => Text(
+                                                  controller
+                                                      .selectedStartTime.value,
+                                                  style: TextStyle(
+                                                      color: controller
+                                                                  .selectedStartTime
+                                                                  .value ==
+                                                              '00:00'
+                                                          ? Colors.grey
+                                                          : AppColors.hijauTua,
+                                                      fontSize: 14),
+                                                )),
+                                            onTap: () =>
+                                                controller.showTimePicker(true),
                                           ),
-                                          items: controller.provinces,
-                                          selectedItem:
-                                              controller.selectedProvince.value,
-                                          onChanged:
-                                              controller.onProvinceChanged,
-                                          itemAsString: (Province? p) =>
-                                              p?.name ?? '',
-                                          // Add textStyle for the selected item
-                                          dropdownBuilder:
-                                              (context, selectedItem) {
-                                            return Text(
-                                              selectedItem?.name ??
-                                                  'Select Province',
-                                              style: TextStyle(
-                                                color: selectedItem != null
-                                                    ? AppColors.hijauTua
-                                                    : Colors.grey,
-                                                fontSize: 14,
-                                              ),
-                                            );
-                                          },
                                         ),
-                                        SizedBox(height: 16),
 
-                                        // City Dropdown with Search
-                                        DropdownSearch<City>(
-                                          enabled: controller
-                                                  .selectedProvince.value !=
-                                              null,
-                                          popupProps: PopupProps.menu(
-                                            showSearchBox: true,
-                                            searchFieldProps: TextFieldProps(
-                                              decoration: InputDecoration(
-                                                hintText:
-                                                    'Search city/regency...',
-                                                prefixIcon: Icon(Icons.search,
-                                                    size: 20),
-                                                border: OutlineInputBorder(),
-                                                isDense:
-                                                    true, // Make the search input more compact
-                                                contentPadding:
-                                                    EdgeInsets.symmetric(
-                                                        horizontal: 10,
-                                                        vertical: 8),
-                                              ),
-                                            ),
-                                            constraints: BoxConstraints(
-                                                maxHeight:
-                                                    400), // Limit popup height
-                                            showSelectedItems: true,
-                                            searchDelay:
-                                                Duration(milliseconds: 100),
-                                            emptyBuilder:
-                                                (context, searchEntry) =>
-                                                    Center(
-                                              child: Text(
-                                                  'No cities/regencies found'),
-                                            ),
-                                            containerBuilder:
-                                                (context, popupWidget) =>
-                                                    Container(
-                                              decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(10),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.grey
-                                                        .withOpacity(0.1),
-                                                    spreadRadius: 5,
-                                                    blurRadius: 7,
-                                                    offset: Offset(0, 3),
-                                                  ),
-                                                ],
-                                              ),
-                                              child: popupWidget,
-                                            ),
+                                        // End Time Picker
+                                        Container(
+                                          margin: EdgeInsets.only(bottom: 16),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            border: Border.all(
+                                                color: Colors.grey.shade300),
                                           ),
-                                          compareFn: (City? c1, City? c2) =>
-                                              c1?.id == c2?.id, // Add this line
-                                          dropdownDecoratorProps:
-                                              DropDownDecoratorProps(
-                                            dropdownSearchDecoration:
-                                                CustomInputDecoration
-                                                    .buildDropdownSearchDecoration(
-                                              labelText: 'City/Regency',
-                                              icon: Icons.location_city,
-                                              hasValue: controller
-                                                      .selectedCity.value !=
-                                                  null,
-                                            ),
+                                          child: ListTile(
+                                            leading: Icon(Icons.access_time,
+                                                color: AppColors.hijauTua),
+                                            title: Text('End Time',
+                                                style: TextStyle(
+                                                    color: AppColors.hijauTua)),
+                                            trailing: Obx(() => Text(
+                                                  controller
+                                                      .selectedEndTime.value,
+                                                  style: TextStyle(
+                                                      color: controller
+                                                                  .selectedEndTime
+                                                                  .value ==
+                                                              '23:59'
+                                                          ? Colors.grey
+                                                          : AppColors.hijauTua,
+                                                      fontSize: 14),
+                                                )),
+                                            onTap: () => controller
+                                                .showTimePicker(false),
                                           ),
-                                          items: controller.cities,
-                                          selectedItem:
-                                              controller.selectedCity.value,
-                                          onChanged: controller.onCityChanged,
-                                          itemAsString: (City? c) =>
-                                              c?.name ?? '',
-
-                                          dropdownBuilder:
-                                              (context, selectedItem) {
-                                            return Text(
-                                              selectedItem?.name ??
-                                                  'Select City/Regency',
-                                              style: TextStyle(
-                                                color: selectedItem != null
-                                                    ? AppColors.hijauTua
-                                                    : Colors.grey,
-                                                fontSize: 14,
-                                              ),
-                                            );
-                                          },
                                         ),
                                       ],
                                     ),
-                                  ),
-                                ],
+
+                                    // Location Selection
+                                    Container(
+                                      margin: EdgeInsets.only(top: 16),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          // Province Dropdown with Search
+                                          DropdownSearch<Province>(
+                                            popupProps: PopupProps.menu(
+                                              showSearchBox: true,
+                                              searchFieldProps: TextFieldProps(
+                                                decoration: InputDecoration(
+                                                  hintText:
+                                                      'Search province...',
+                                                  prefixIcon: Icon(Icons.search,
+                                                      size: 20),
+                                                  border: OutlineInputBorder(),
+                                                  isDense:
+                                                      true, // Make the search input more compact
+                                                  contentPadding:
+                                                      EdgeInsets.symmetric(
+                                                          horizontal: 10,
+                                                          vertical: 8),
+                                                ),
+                                              ),
+                                              constraints: BoxConstraints(
+                                                  maxHeight:
+                                                      400), // Limit popup height
+                                              showSelectedItems: true,
+                                              searchDelay:
+                                                  Duration(milliseconds: 100),
+                                              containerBuilder:
+                                                  (context, popupWidget) =>
+                                                      Container(
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.grey
+                                                          .withOpacity(0.1),
+                                                      spreadRadius: 5,
+                                                      blurRadius: 7,
+                                                      offset: Offset(0, 3),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: popupWidget,
+                                              ),
+                                            ),
+                                            compareFn:
+                                                (Province? p1, Province? p2) =>
+                                                    p1?.id ==
+                                                    p2?.id, // Add this line
+                                            dropdownDecoratorProps:
+                                                DropDownDecoratorProps(
+                                              dropdownSearchDecoration:
+                                                  CustomInputDecoration
+                                                      .buildDropdownSearchDecoration(
+                                                labelText: 'Province',
+                                                icon: Icons.location_on,
+                                                hasValue: controller
+                                                        .selectedProvince
+                                                        .value !=
+                                                    null,
+                                              ),
+                                            ),
+                                            items: controller.provinces,
+                                            selectedItem: controller
+                                                .selectedProvince.value,
+                                            onChanged:
+                                                controller.onProvinceChanged,
+                                            itemAsString: (Province? p) =>
+                                                p?.name ?? '',
+                                            // Add textStyle for the selected item
+                                            dropdownBuilder:
+                                                (context, selectedItem) {
+                                              return Text(
+                                                selectedItem?.name ??
+                                                    'Select Province',
+                                                style: TextStyle(
+                                                  color: selectedItem != null
+                                                      ? AppColors.hijauTua
+                                                      : Colors.grey,
+                                                  fontSize: 14,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                          SizedBox(height: 16),
+
+                                          // City Dropdown with Search
+                                          DropdownSearch<City>(
+                                            enabled: controller
+                                                    .selectedProvince.value !=
+                                                null,
+                                            popupProps: PopupProps.menu(
+                                              showSearchBox: true,
+                                              searchFieldProps: TextFieldProps(
+                                                decoration: InputDecoration(
+                                                  hintText:
+                                                      'Search city/regency...',
+                                                  prefixIcon: Icon(Icons.search,
+                                                      size: 20),
+                                                  border: OutlineInputBorder(),
+                                                  isDense:
+                                                      true, // Make the search input more compact
+                                                  contentPadding:
+                                                      EdgeInsets.symmetric(
+                                                          horizontal: 10,
+                                                          vertical: 8),
+                                                ),
+                                              ),
+                                              constraints: BoxConstraints(
+                                                  maxHeight:
+                                                      400), // Limit popup height
+                                              showSelectedItems: true,
+                                              searchDelay:
+                                                  Duration(milliseconds: 100),
+                                              emptyBuilder:
+                                                  (context, searchEntry) =>
+                                                      Center(
+                                                child: Text(
+                                                    'No cities/regencies found'),
+                                              ),
+                                              containerBuilder:
+                                                  (context, popupWidget) =>
+                                                      Container(
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.grey
+                                                          .withOpacity(0.1),
+                                                      spreadRadius: 5,
+                                                      blurRadius: 7,
+                                                      offset: Offset(0, 3),
+                                                    ),
+                                                  ],
+                                                ),
+                                                child: popupWidget,
+                                              ),
+                                            ),
+                                            compareFn: (City? c1, City? c2) =>
+                                                c1?.id ==
+                                                c2?.id, // Add this line
+                                            dropdownDecoratorProps:
+                                                DropDownDecoratorProps(
+                                              dropdownSearchDecoration:
+                                                  CustomInputDecoration
+                                                      .buildDropdownSearchDecoration(
+                                                labelText: 'City/Regency',
+                                                icon: Icons.location_city,
+                                                hasValue: controller
+                                                        .selectedCity.value !=
+                                                    null,
+                                              ),
+                                            ),
+                                            items: controller.cities,
+                                            selectedItem:
+                                                controller.selectedCity.value,
+                                            onChanged: controller.onCityChanged,
+                                            itemAsString: (City? c) =>
+                                                c?.name ?? '',
+
+                                            dropdownBuilder:
+                                                (context, selectedItem) {
+                                              return Text(
+                                                selectedItem?.name ??
+                                                    'Select City/Regency',
+                                                style: TextStyle(
+                                                  color: selectedItem != null
+                                                      ? AppColors.hijauTua
+                                                      : Colors.grey,
+                                                  fontSize: 14,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
-                        )),
+                            ],
+                          )),
+                    ),
                   ),
 
                   Container(
                     margin: EdgeInsets.symmetric(vertical: 8),
                     padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
+                        )
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -698,9 +745,15 @@ class AddItemView extends GetView<AddItemController> {
                   Container(
                     padding: EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: Offset(0, 2),
+                        )
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -727,18 +780,17 @@ class AddItemView extends GetView<AddItemController> {
                         ),
                         SizedBox(height: 16),
                         Container(
-                          height: 200, // Increased height
+                          height: 200,
                           child: CustomTextField(
                             controller: controller.descriptionController,
                             labelText: 'Description',
                             height: 200,
-                            maxLines:
-                                8, // Set specific number of lines instead of null
+                            maxLines: 8,
                             maxLength: 400,
                             onChanged: controller.updateCharacterCount,
                             keyboardType: TextInputType.multiline,
                             textAlignVertical: TextAlignVertical.top,
-                            isPassword: false, // Explicitly set to false
+                            isPassword: false,
                           ),
                         ),
                       ],
@@ -746,7 +798,6 @@ class AddItemView extends GetView<AddItemController> {
                   ),
 
                   SizedBox(height: 24),
-                  // Submit Button
                   Obx(() => Button.filled(
                         onPressed: controller.isLoading.value
                             ? null
@@ -761,81 +812,6 @@ class AddItemView extends GetView<AddItemController> {
                 ],
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class appbarSearch extends StatelessWidget {
-  bool? widget;
-  appbarSearch({
-    super.key,
-    required this.controllerHome,
-    this.widget,
-  });
-
-  final HomeController controllerHome;
-
-  @override
-  Widget build(BuildContext context) {
-    final controllerHome = Get.put(HomeController());
-
-    return AppBar(
-      title: widget == true
-          ? GestureDetector(
-              onTap: () {
-                controllerHome.changePage(1);
-              },
-              child: Card(
-                margin: EdgeInsets.only(right: 10),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(5),
-                  side: BorderSide(color: Colors.grey),
-                ),
-                child: Container(
-                  height: 48,
-                  width: double.infinity,
-                  child: Row(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: Assets.icons.search
-                            .image(width: 30, color: Colors.grey),
-                      ),
-                      TextCust(
-                        text: "Search",
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            )
-          : titleTextFieldAppbar(
-              controller: controllerHome,
-            ),
-      leadingWidth: 70,
-      toolbarHeight: 50,
-      leading: Padding(
-        padding: EdgeInsets.only(left: 20, top: 4, bottom: 2),
-        child: Container(
-          padding: EdgeInsets.only(left: 5),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            color: AppColors.grey,
-          ),
-          child: IconButton(
-            icon: Icon(Icons.arrow_back_ios),
-            color: Colors.white,
-            onPressed: () {
-              final homeController = Get.find<HomeController>();
-              homeController.changePage(0);
-            },
           ),
         ),
       ),

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lelang_fb/app/modules/myitems/views/myitems_view.dart';
+import 'package:lelang_fb/app/widgets/header.dart';
 import 'package:lelang_fb/core/constants/color.dart';
 
 import '../../../../core/assets/assets.gen.dart';
 import '../../../controllers/auth_controller.dart';
 import '../../admin/views/admin_view.dart';
-import '../../notifications/views/notifications_view.dart';
 import '../controllers/profile_controller.dart';
 import 'profile_setting_view.dart';
 import 'transaction_view.dart';
@@ -20,24 +20,39 @@ class ProfileView extends GetView<ProfileController> {
     final controller = Get.put(ProfileController());
 
     return Scaffold(
-      appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+      backgroundColor: Color(0xFFF8F9FA),
+      appBar: Header(
+        titleWidget: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Iconnn(
-              icon: Assets.icons.settings.path,
-            ),
-            Iconnn(
-              icon: Assets.icons.notif.path,
-              onPressed: () {
-                Get.to(NotifictaionsView());
-              },
+            Text(
+              'Settings',
+              style: TextStyle(
+                color: AppColors.hijauTua,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
+        backgroundColor: Colors.white,
+        leading: Container(
+          margin: EdgeInsets.only(left: 40),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: Offset(0, 2),
+              )
+            ],
+          ),
+        ),
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 25),
+        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -127,11 +142,6 @@ class ProfileView extends GetView<ProfileController> {
               },
             ),
             Buttonn(
-              image: Assets.icons.security.path,
-              text: 'Security',
-              onPressed: () {},
-            ),
-            Buttonn(
               icon: Icons.settings,
               text: 'Admin',
               onPressed: () {
@@ -181,7 +191,7 @@ class Iconnn extends StatelessWidget {
     return IconButton(
       onPressed: onPressed,
       icon: Image.asset(
-        icon, // Icon for settings
+        icon,
         width: width,
         height: height,
       ),
@@ -206,56 +216,67 @@ class Buttonn extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: ElevatedButton(
-        onPressed: onPressed,
-        style: ButtonStyle(
-          elevation: WidgetStatePropertyAll(0),
-          backgroundColor: WidgetStatePropertyAll(
-            Colors.grey[100],
-          ),
-          shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(5),
-            ),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  margin: EdgeInsets.symmetric(vertical: 10),
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: image != null
-                      ? Image.asset(
-                          image!,
-                          width: 10,
-                          color: AppColors.hijauTua,
-                        )
-                      : Icon(
-                          icon!,
-                          color: AppColors.hijauTua,
-                        ),
-                ),
-                SizedBox(width: 20),
-                Text(
-                  text,
-                  style: TextStyle(color: Colors.black, fontSize: 16),
-                ),
-              ],
-            ),
-            Icon(
-              Icons.arrow_forward_ios, // Ikon di sebelah kanan
-              color: Colors.black,
-            ),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: Offset(0, 2),
+            )
           ],
+        ),
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ButtonStyle(
+            elevation: WidgetStateProperty.all(0),
+            backgroundColor: WidgetStateProperty.all(Colors.white),
+            shape: WidgetStateProperty.all(
+              RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(5),
+              ),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    margin: EdgeInsets.symmetric(vertical: 10),
+                    padding: EdgeInsets.symmetric(horizontal: 10),
+                    child: image != null
+                        ? Image.asset(
+                            image!,
+                            width: 10,
+                            color: AppColors.hijauTua,
+                          )
+                        : Icon(
+                            icon!,
+                            color: AppColors.hijauTua,
+                          ),
+                  ),
+                  SizedBox(width: 20),
+                  Text(
+                    text,
+                    style: TextStyle(color: Colors.black, fontSize: 16),
+                  ),
+                ],
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                color: Colors.black,
+              ),
+            ],
+          ),
         ),
       ),
     );
