@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:lelang_fb/app/widgets/header.dart';
 import 'package:lelang_fb/core/constants/color.dart';
 import 'package:dropdown_search/dropdown_search.dart';
-import '../../../../core/assets/assets.gen.dart';
 import '../../../services/location_service.dart';
 import '../../../utils/input_decorations.dart';
 
@@ -19,13 +18,13 @@ class AddItemView extends GetView<AddItemController> {
   const AddItemView({super.key});
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(AddItemController());
+    // Pastikan controller terdaftar dan memiliki semua atribut yang dibutuhkan
+    final AddItemController controller = Get.put(AddItemController());
 
-    // ever(Get.reference, (_) {
-    //   if (!Get.isRegistered<AddItemController>()) {
-    //     controller.resetLocationData();
-    //   }
-    // });
+    // Verifikasi controller sudah terinisialisasi dengan benar
+    if (!GetInstance().isRegistered<AddItemController>()) {
+      throw Exception('AddItemController is not properly registered');
+    }
 
     return Scaffold(
       backgroundColor: Color(0xFFF8F9FA),

@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:lelang_fb/core/constants/color.dart';
 import 'dart:io';
 import '../../../services/cloudinary_service.dart';
 import 'package:flutter/material.dart';
@@ -345,7 +346,6 @@ class MyitemsController extends GetxController {
 
   Future<void> showEditItemDialog(Map<String, dynamic> item) async {
     final nameController = TextEditingController(text: item['name']);
-
     final descriptionController =
         TextEditingController(text: item['description']);
 
@@ -370,10 +370,24 @@ class MyitemsController extends GetxController {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
+                    ElevatedButton(
+                      onPressed: () => _updateItem(
+                        item['id'],
+                        nameController.text,
+                        descriptionController.text,
+                      ),
+                      child: Text('Save Changes'),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.hijauTua,
+                      ),
+                    ),
+                    SizedBox(width: 8),
                     TextButton(
                       onPressed: () => Get.back(),
                       child: Text('Cancel'),
                     ),
+                    SizedBox(width: 8),
                   ],
                 ),
               ],

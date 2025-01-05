@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
+
 import 'package:lelang_fb/app/controllers/auth_controller.dart';
 import 'package:lelang_fb/app/utils/app_theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app/routes/app_pages.dart';
 
@@ -11,15 +12,18 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
 
-  await GetStorage.init();
-
   Get.put(AuthController(), permanent: true);
 
-  runApp(MyApp());
+  // Check if user was previously logged in
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  bool wasLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+
+  runApp(MyApp(wasLoggedIn: wasLoggedIn));
 }
 
 class MyApp extends StatelessWidget {
-  final authC = Get.find<AuthController>();
+  final bool wasLoggedIn;
+  MyApp({this.wasLoggedIn = false});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +32,7 @@ class MyApp extends StatelessWidget {
       title: 'Lelang FB',
       theme: AppTheme.lightTheme,
       getPages: AppPages.routes,
-      initialRoute: authC.isLoggedIn.value ? Routes.HOME : Routes.SPLASH,
+      initialRoute: wasLoggedIn ? Routes.HOME : Routes.SPLASH,
     );
   }
 }

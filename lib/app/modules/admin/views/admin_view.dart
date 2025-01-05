@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:lelang_fb/app/modules/home/controllers/home_controller.dart';
 import 'package:lelang_fb/app/widgets/header.dart';
 import '../../../../core/constants/color.dart';
 import '../controllers/admin_controller.dart';
@@ -251,73 +250,6 @@ class AdminView extends GetView<AdminController> {
           height: 32,
           child: Icon(icon, size: 16, color: color),
         ),
-      ),
-    );
-  }
-
-  void _showHelp() {
-    Get.dialog(
-      AlertDialog(
-        title: Text('Help & Information'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHelpItem(
-              icon: Icons.add_photo_alternate,
-              title: 'Adding Images',
-              description: 'Click the + button to add new carousel images.',
-            ),
-            _buildHelpItem(
-              icon: Icons.edit,
-              title: 'Editing Images',
-              description: 'Use the edit button to replace existing images.',
-            ),
-            _buildHelpItem(
-              icon: Icons.delete,
-              title: 'Deleting Images',
-              description: 'Remove unwanted images using the delete button.',
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: Text('Got it'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHelpItem({
-    required IconData icon,
-    required String title,
-    required String description,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.hijauTua),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  description,
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

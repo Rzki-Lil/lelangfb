@@ -1,9 +1,6 @@
-import 'dart:io';
-import 'dart:io';
-
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:carousel_slider/carousel_controller.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,7 +15,7 @@ import '../../../../core/assets/assets.gen.dart';
 import '../../../routes/app_pages.dart';
 
 import '../../../utils/event_card.dart';
-import '../../../utils/text.dart';
+
 import '../controllers/home_controller.dart';
 import '../../../widgets/home_header.dart';
 
@@ -782,12 +779,11 @@ void _showWithdrawDialog(BuildContext context) {
             TextField(
               controller: accountNumberController,
               keyboardType: TextInputType.number,
-              maxLength: 19, 
+              maxLength: 19,
               decoration: InputDecoration(
                 labelText: 'Account Number',
                 border: OutlineInputBorder(),
-                counterText:
-                    '', 
+                counterText: '',
               ),
               inputFormatters: [
                 FilteringTextInputFormatter.digitsOnly,

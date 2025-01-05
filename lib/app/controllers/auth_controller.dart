@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:lelang_fb/app/routes/app_pages.dart';
@@ -25,22 +26,83 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    print("AuthController onInit called");
-    currentUser = Rx<User?>(_auth.currentUser);
-    currentUser.bindStream(streamAuthStatus);
-    ever(currentUser, _setInitialScreen);
-    loadRememberMeStatus();
-    checkGuestStatus();
-    checkEmailVerificationStatus();
+    initializeAuth();
+  }
 
-    _auth.authStateChanges().listen((User? user) {
-      isLoggedIn.value = user != null;
-      if (user != null) {
-        Get.offAllNamed(Routes.HOME);
-      } else {
-        Get.offAllNamed(Routes.LOGIN);
+  Future<void> initializeAuth() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      bool wasLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+      bool wasGoogleSignIn = prefs.getBool('isGoogleSignIn') ?? false;
+
+      if (wasLoggedIn) {
+        if (wasGoogleSignIn) {
+          await restoreGoogleSignIn();
+        } else {
+          await restoreEmailSignIn(prefs);
+        }
       }
-    });
+
+      // Initialize auth state listener after restore attempt
+      currentUser = Rx<User?>(_auth.currentUser);
+      currentUser.bindStream(streamAuthStatus);
+      ever(currentUser, _setInitialScreen);
+
+      _auth.authStateChanges().listen((User? user) {
+        isLoggedIn.value = user != null;
+        if (user != null) {
+          Get.offAllNamed(Routes.HOME);
+        }
+      });
+    } catch (e) {
+      print("Error in initializeAuth: $e");
+    }
+  }
+
+  Future<void> restoreGoogleSignIn() async {
+    try {
+      final googleUser = await _googleSignIn.signInSilently();
+      if (googleUser != null) {
+        final googleAuth = await googleUser.authentication;
+        final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+        await _auth.signInWithCredential(credential);
+      }
+    } catch (e) {
+      print("Error restoring Google Sign In: $e");
+    }
+  }
+
+  Future<void> restoreEmailSignIn(SharedPreferences prefs) async {
+    try {
+      String? email = prefs.getString('email');
+      String? password = prefs.getString('password');
+
+      if (email != null && password != null) {
+        await _auth.signInWithEmailAndPassword(
+            email: email, password: password);
+      }
+    } catch (e) {
+      print("Error restoring email sign in: $e");
+    }
+  }
+
+  Future<void> autoLoginCheck() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+      String? savedEmail = prefs.getString('email');
+      String? savedPassword = prefs.getString('password');
+
+      if (isLoggedIn && savedEmail != null && savedPassword != null) {
+        login(savedEmail, savedPassword);
+      }
+    } catch (e) {
+      print("Error during auto login: $e");
+    }
   }
 
   void _setInitialScreen(User? user) async {
@@ -162,6 +224,15 @@ class AuthController extends GetxController {
           await createOrUpdateUserData(userCredential.user!);
         }
 
+        // Tambahkan penyimpanan status login
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('isLoggedIn', true);
+        await prefs.setBool('isGoogleSignIn', false);
+
+        // Always store credentials for persistence
+        await prefs.setString('email', email);
+        await prefs.setString('password', password);
+
         printUserInfo(userCredential.user!);
         if (userCredential.user!.emailVerified) {
           if (rememberMe.value) {
@@ -169,7 +240,11 @@ class AuthController extends GetxController {
           }
           navigateToHome();
           Get.snackbar(
-              'Berhasil', 'Masuk sebagai ${userCredential.user?.displayName}');
+            'Berhasil',
+            'Masuk sebagai ${userCredential.user?.displayName} ',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+          );
         } else {
           await userCredential.user!.sendEmailVerification();
           navigateToEmailVerification();
@@ -194,11 +269,18 @@ class AuthController extends GetxController {
     }
   }
 
-  Future<void> signInWithGoogle({String? email}) async {
+  Future<void> signInWithGoogle(
+      {String? email, bool silentSignIn = false}) async {
     try {
-      await _googleSignIn.signOut();
+      GoogleSignInAccount? googleUser;
 
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (silentSignIn) {
+        googleUser = await _googleSignIn.signInSilently();
+      } else {
+        await _googleSignIn.signOut(); // Only sign out if not silent sign in
+        googleUser = await _googleSignIn.signIn();
+      }
+
       if (googleUser == null) return;
 
       if (email != null && googleUser.email != email) {
@@ -213,6 +295,11 @@ class AuthController extends GetxController {
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
+
+      // Store Google Sign In persistence
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isGoogleSignIn', true);
+      await prefs.setBool('isLoggedIn', true);
 
       try {
         final UserCredential userCredential =
@@ -329,16 +416,29 @@ class AuthController extends GetxController {
     isGuest.value = _auth.currentUser?.isAnonymous ?? false;
   }
 
-  void logout() async {
-    if (isGuest.value) {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.remove(GUEST_ID_KEY);
+  Future<void> checkGoogleSignInPersistence() async {
+    try {
+      final googleSignInAccount = await _googleSignIn.signInSilently();
+      if (googleSignInAccount != null) {
+        await signInWithGoogle(silentSignIn: true);
+      }
+    } catch (e) {
+      print("Error checking Google Sign In persistence: $e");
     }
-    await _auth.signOut();
-    clearLoginInfo();
-    rememberMe.value = false;
-    isGuest.value = false;
-    navigateToLogin();
+  }
+
+  void logout() async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.clear(); // Clear all stored credentials
+
+      await _googleSignIn.signOut();
+      await _auth.signOut();
+
+      navigateToLogin();
+    } catch (e) {
+      print("Error during logout: $e");
+    }
   }
 
   void saveLoginInfo(String email, String password) async {

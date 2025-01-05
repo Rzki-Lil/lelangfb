@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:lelang_fb/app/utils/text.dart';
 import '../../../../core/constants/color.dart';
 import '../controllers/transaction_controller.dart';
 import 'package:intl/intl.dart';

@@ -2,7 +2,6 @@ import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 
 import 'package:get/get.dart';
-import 'package:lelang_fb/app/modules/profile/views/transaction_view.dart';
 import 'package:lelang_fb/app/services/location_service.dart';
 import 'package:lelang_fb/app/utils/custom_text_field.dart';
 import 'package:lelang_fb/app/utils/text.dart';

@@ -12,7 +12,6 @@ import 'package:lelang_fb/app/services/cloudinary_service.dart';
 import 'package:lelang_fb/app/services/location_service.dart';
 import 'package:lelang_fb/app/utils/custom_text_field.dart';
 import 'package:lelang_fb/core/constants/color.dart';
-import 'dart:math';
 
 class ProfileController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -95,6 +94,17 @@ class ProfileController extends GetxController {
     phoneVerificationController.verificationSuccessCallback = () {
       fetchUserData(); // Refresh user data after verification
     };
+
+    // Add listener to reset message flag when verification status changes
+    ever(userData, (data) {
+      if (data != null) {
+        bool isVerified = data['verified_buyer_seller'] ?? false;
+        if (isVerified != verify) {
+          verify = isVerified;
+          hasShownVerificationMessage.value = false;
+        }
+      }
+    });
   }
 
   @override
@@ -750,10 +760,12 @@ class ProfileController extends GetxController {
       if (currentUser != null) {
         final userRef = _firestore.collection('users').doc(currentUser.uid);
         final userDoc = await userRef.get();
+        final bool currentVerificationStatus =
+            userDoc.data()?['verified_buyer_seller'] ?? false;
 
+        // Only update and show message if status is actually changing
         if (completeness == 100) {
-          if (!userDoc.exists ||
-              userDoc.data()?['verified_buyer_seller'] != true) {
+          if (!currentVerificationStatus) {
             await userRef.set({
               'verified_buyer_seller': true,
               'updatedAt': FieldValue.serverTimestamp(),
@@ -771,8 +783,7 @@ class ProfileController extends GetxController {
             }
           }
         } else {
-          if (!userDoc.exists ||
-              userDoc.data()?['verified_buyer_seller'] == true) {
+          if (currentVerificationStatus) {
             await userRef.set({
               'verified_buyer_seller': false,
               'updatedAt': FieldValue.serverTimestamp(),
@@ -793,12 +804,6 @@ class ProfileController extends GetxController {
       }
     } catch (e) {
       print('Error updating verification status: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to update verification status',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
     }
   }
 }

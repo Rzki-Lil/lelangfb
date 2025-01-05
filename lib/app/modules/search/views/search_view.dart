@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:lelang_fb/app/modules/home/controllers/home_controller.dart';
 import 'package:lelang_fb/app/widgets/header.dart';
 import 'package:lelang_fb/core/constants/color.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import '../controllers/search_controller.dart';
 

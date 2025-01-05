@@ -3,8 +3,6 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../../../../core/assets/assets.gen.dart';
-
 class TransactionController extends GetxController
     with SingleGetTickerProviderMixin {
   late TabController tabController;
@@ -36,7 +34,7 @@ class TransactionController extends GetxController
   String _extractProvince(String location) {
     final parts = location.split(',');
     if (parts.length > 1) {
-      return parts[1].trim(); 
+      return parts[1].trim();
     }
     return location.trim();
   }
@@ -124,7 +122,6 @@ class TransactionController extends GetxController
           ? 'Are you sure you want to delete this bid? You can still participate in this auction again.'
           : 'Are you sure you want to delete this bid from your history?';
 
-
       final bool? confirm = await Get.dialog<bool>(
         AlertDialog(
           title: Text(title),
@@ -210,8 +207,7 @@ class TransactionController extends GetxController
 
     return currentList.where((bid) {
       return bid['itemName']?.toString().toLowerCase().contains(query) ??
-          false || bid['location']!.toString().toLowerCase().contains(query) ??
-          false;
+          false || bid['location']!.toString().toLowerCase().contains(query);
     }).toList();
   }
 
