@@ -23,8 +23,6 @@ class SearchView extends GetView<SearchingController> {
               Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.hijauTua),
           onPressed: () {
             Get.back();
-            final homeController = Get.find<HomeController>();
-            homeController.selectedPage.value = 0;
           },
         ),
       ),

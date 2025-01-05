@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:lelang_fb/app/modules/home/views/home.dart';
 import 'package:lelang_fb/app/modules/list_favorite/views/list_favorite_view.dart';
 import 'package:lelang_fb/app/modules/search/views/search_view.dart';
+import 'package:lelang_fb/app/services/auction_service.dart';
 import 'package:lelang_fb/core/assets/assets.gen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -110,8 +111,6 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
     });
     print('HomeController onInit called');
     Get.lazyPut(() => AddItemController());
-    tabController = TabController(length: 3, vsync: this);
-    fetchEvents();
     setupItemsListener();
     fetchCarouselImages().then((_) {
       carouselImages.refresh();
@@ -131,7 +130,6 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
     });
 
     fetchUserBalance();
-    setupUserBalanceListener();
   }
 
   void setupItemsListener() {
@@ -141,12 +139,6 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       _firestore.collection('items').snapshots().listen(
         (snapshot) async {
           print('Received snapshot with ${snapshot.docs.length} documents');
-
-          if (snapshot.docs.isEmpty) {
-            print('No documents found in items collection');
-            return;
-          }
-
           try {
             List<Future<QuerySnapshot>> bidCountFutures =
                 snapshot.docs.map((doc) {
@@ -165,10 +157,23 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
               bidCounts[snapshot.docs[i].id] = bidSnapshots[i].docs.length;
             }
 
-            items.value = snapshot.docs.map((doc) {
+            // Process items and check status
+            items.value = await Future.wait(snapshot.docs.map((doc) async {
               final data = doc.data();
+              final itemRef = _firestore.collection('items').doc(doc.id);
+
+              // Use checkAndUpdateStatus which now uses _updateToLive internally
+              if (data['status'] == 'upcoming' || data['status'] == 'live') {
+                await AuctionService.checkAndUpdateStatus(itemRef);
+                // Get fresh data after status update
+                final updatedDoc = await itemRef.get();
+                if (updatedDoc.exists) {
+                  data.addAll(updatedDoc.data() ?? {});
+                }
+              }
+
               return processItemData(doc.id, data, bidCounts[doc.id] ?? 0);
-            }).toList();
+            }));
 
             liveAuctions.value = snapshot.docs.where((doc) {
               final data = doc.data();
@@ -177,14 +182,9 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
 
             upcomingAuctions.value =
                 items.where((item) => item['status'] == 'upcoming').toList();
-
-            print('Processed ${items.length} items successfully');
           } catch (e) {
             print('Error processing documents: $e');
           }
-        },
-        onError: (error) {
-          print('Error in Firestore listener: $error');
         },
       );
     } catch (e) {
@@ -223,43 +223,8 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
   void dispose() {
     _timer?.cancel();
     _statusCheckTimer?.cancel();
-    tabController.dispose();
 
     super.dispose();
-  }
-
-  void increment() => count.value++;
-
-  late TabController tabController;
-
-  Future<void> fetchEvents() async {
-    try {
-      final carSnapshot = await _firestore
-          .collection('events')
-          .where('type', isEqualTo: 'car')
-          .get();
-      carEvents.value = carSnapshot.docs
-          .map((doc) => doc.data() as Map<String, dynamic>)
-          .toList();
-
-      final motorSnapshot = await _firestore
-          .collection('events')
-          .where('type', isEqualTo: 'motorcycle')
-          .get();
-      motorEvents.value = motorSnapshot.docs
-          .map((doc) => doc.data() as Map<String, dynamic>)
-          .toList();
-
-      final lifestyleSnapshot = await _firestore
-          .collection('events')
-          .where('type', isEqualTo: 'lifestyle')
-          .get();
-      lifestyleEvents.value = lifestyleSnapshot.docs
-          .map((doc) => doc.data() as Map<String, dynamic>)
-          .toList();
-    } catch (e) {
-      print('Error fetching events: $e');
-    }
   }
 
   Future<void> fetchCarouselImages() async {
@@ -289,96 +254,25 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
   }
 
   void checkAndUpdateAuctionStatus() async {
-    final now = DateTime.now();
-
     try {
       final querySnapshot = await _firestore
           .collection('items')
           .where('status', whereIn: ['upcoming', 'live']).get();
 
+      print('Found ${querySnapshot.docs.length} active auctions to check');
+
       for (var doc in querySnapshot.docs) {
-        final item = doc.data();
-        final itemDate = (item['tanggal'] as Timestamp).toDate();
-
-        final startTime = item['jamMulai'] as String;
-        final endTime = item['jamSelesai'] as String;
-
-        final startTimeParts = startTime.split(':');
-        final endTimeParts = endTime.split(':');
-
-        final itemStartDateTime = DateTime(
-          itemDate.year,
-          itemDate.month,
-          itemDate.day,
-          int.parse(startTimeParts[0]),
-          int.parse(startTimeParts[1]),
-        );
-
-        final itemEndDateTime = DateTime(
-          itemDate.year,
-          itemDate.month,
-          itemDate.day,
-          int.parse(endTimeParts[0]),
-          int.parse(endTimeParts[1]),
-        );
-
-        if (item['status'] == 'upcoming' && now.isAfter(itemStartDateTime)) {
-          await doc.reference.update({
-            'status': 'live',
-            'updated_at': FieldValue.serverTimestamp(),
-          });
-          _sendNotification(
-            userId: item['seller_id'],
-            title: 'Auction Started',
-            message: 'Your auction for ${item['name']} has started!',
-            type: 'auction_start',
-          );
-        }
-
-        if (item['status'] == 'live' && now.isAfter(itemEndDateTime)) {
-          await _handleAuctionEnd(doc.reference, item);
-        }
+        print('Checking auction: ${doc.id}');
+        await AuctionService.checkAndUpdateStatus(doc.reference);
       }
     } catch (e) {
-      print('Error in checkAndUpdateAuctionStatus: $e');
+      print('Error checking auction status: $e');
     }
   }
 
   Future<void> _handleAuctionEnd(
       DocumentReference itemRef, Map<String, dynamic> item) async {
-    try {
-      await _firestore.runTransaction((transaction) async {
-        final bidsSnapshot = await itemRef
-            .collection('bids')
-            .orderBy('amount', descending: true)
-            .limit(1)
-            .get();
-
-        if (bidsSnapshot.docs.isNotEmpty) {
-          final highestBid = bidsSnapshot.docs.first;
-          final winnerId = highestBid.data()['bidder_id'];
-          final winningAmount = highestBid.data()['amount'];
-
-          final winnerRef = _firestore.collection('users').doc(winnerId);
-          final sellerRef =
-              _firestore.collection('users').doc(item['seller_id']);
-
-          transaction.update(itemRef, {
-            'status': 'closed',
-            'winner_id': winnerId,
-            'winning_bid': winningAmount,
-            'updated_at': FieldValue.serverTimestamp(),
-          });
-
-          transaction.update(
-              winnerRef, {'balance': FieldValue.increment(-winningAmount)});
-          transaction.update(
-              sellerRef, {'balance': FieldValue.increment(winningAmount)});
-        }
-      });
-    } catch (e) {
-      print('Error handling auction end: $e');
-    }
+    await AuctionService.handleAuctionEnd(itemRef, item);
   }
 
   Future<void> _sendNotification({
@@ -429,22 +323,6 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       }
     } catch (e) {
       print('Error fetching balance: $e');
-    }
-  }
-
-  void setupUserBalanceListener() {
-    final user = _auth.currentUser;
-    if (user != null) {
-      _firestore.collection('users').doc(user.uid).snapshots().listen((doc) {
-        if (doc.exists && doc.data()!.containsKey('balance')) {
-          userBalance.value = (doc.data()?['balance'] ?? 0.0).toDouble();
-        } else {
-          _firestore.collection('users').doc(user.uid).set({
-            'balance': 0.0,
-          }, SetOptions(merge: true));
-          userBalance.value = 0.0;
-        }
-      }, onError: (e) => print('Error listening to balance: $e'));
     }
   }
 
@@ -537,39 +415,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
         return;
       }
 
-      final userRef = _firestore.collection('users').doc(user.uid);
-
-      await _firestore.runTransaction((transaction) async {
-        final userDoc = await transaction.get(userRef);
-
-        if (!userDoc.exists) {
-          transaction.set(userRef, {
-            'balance': amount,
-            'email': user.email,
-            'displayName': user.displayName,
-          });
-        } else {
-          final currentBalance = (userDoc.data()?['balance'] ?? 0.0).toDouble();
-          final newBalance = currentBalance + amount;
-
-          print(
-              'Updating balance: Current=$currentBalance, Adding=$amount, New=$newBalance');
-
-          transaction.update(userRef, {
-            'balance': newBalance,
-          });
-        }
-      });
-
-      await _firestore.collection('transactions').add({
-        'userId': user.uid,
-        'amount': amount,
-        'type': 'topup',
-        'timestamp': FieldValue.serverTimestamp(),
-        'status': 'success',
-        'details': 'Midtrans payment'
-      });
-
+      await AuctionService.processTopUp(user.uid, amount);
       await fetchUserBalance();
 
       print('Balance updated successfully');
@@ -653,67 +499,62 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
         return;
       }
 
-      Get.dialog(
-        Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Container(
-            width: Get.width * 0.95,
-            height: Get.height * 0.7,
-            padding: EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Transaction History',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.close),
-                      onPressed: () => Get.back(),
-                    ),
-                  ],
-                ),
-                Divider(),
-                Expanded(
-                  child: FutureBuilder<QuerySnapshot>(
-                    future: _firestore
-                        .collection('transactions')
-                        .where('userId', isEqualTo: user.uid)
-                        .orderBy('timestamp', descending: true)
-                        .get(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
+      final transactions = await AuctionService.getTransactionHistory(user.uid);
+      _showTransactionHistoryDialog(transactions);
+    } catch (e) {
+      print('Error showing transaction history: $e');
+      Get.snackbar('Error', 'Failed to load transaction history');
+    }
+  }
 
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.history, size: 48, color: Colors.grey),
-                              SizedBox(height: 16),
-                              Text('No transactions found'),
-                            ],
-                          ),
-                        );
-                      }
-
-                      return ListView.builder(
+  void _showTransactionHistoryDialog(List<Map<String, dynamic>> transactions) {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Container(
+          width: Get.width * 0.95,
+          height: Get.height * 0.7,
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Transaction History',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () => Get.back(),
+                  ),
+                ],
+              ),
+              Divider(),
+              Expanded(
+                child: transactions.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.history, size: 48, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text('No transactions found'),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
                         shrinkWrap: true,
-                        itemCount: snapshot.data!.docs.length,
+                        itemCount: transactions.length,
                         itemBuilder: (context, index) {
-                          final transaction = snapshot.data!.docs[index].data()
-                              as Map<String, dynamic>;
-                          final amount = transaction['amount'] ?? 0.0;
+                          final transaction = transactions[index];
+                          final amount = transaction['amount'] ?? 0;
                           final type = transaction['type'] ?? 'Unknown';
                           final timestamp =
                               transaction['timestamp'] as Timestamp;
@@ -747,20 +588,14 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
                             ),
                           );
                         },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
+                      ),
+              ),
+            ],
           ),
         ),
-        barrierDismissible: true,
-      );
-    } catch (e) {
-      print('Error showing transaction history: $e');
-      Get.snackbar('Error', 'Failed to load transaction history');
-    }
+      ),
+      barrierDismissible: true,
+    );
   }
 
   Future<void> withdraw(double amount, String bankCode, String accountNumber,
@@ -789,23 +624,17 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
 
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
+        final transactionId = responseData['transaction_id']?.toString() ??
+            'WD-${DateTime.now().millisecondsSinceEpoch}';
 
-        await _firestore
-            .collection('users')
-            .doc(_auth.currentUser?.uid)
-            .update({'balance': FieldValue.increment(-amount)});
-
-        await _firestore.collection('transactions').add({
-          'userId': _auth.currentUser?.uid,
-          'amount': amount,
-          'type': 'withdraw',
-          'bankCode': bankCode,
-          'bankAccount': accountNumber,
-          'accountName': accountName,
-          'timestamp': FieldValue.serverTimestamp(),
-          'status': 'success',
-          'transaction_id': responseData['transaction_id'],
-        });
+        await AuctionService.processWithdrawal(
+          _auth.currentUser!.uid,
+          amount,
+          bankCode,
+          accountNumber,
+          accountName,
+          transactionId,
+        );
 
         Get.dialog(
           Dialog(

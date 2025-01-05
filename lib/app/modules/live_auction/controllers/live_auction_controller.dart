@@ -3,8 +3,9 @@ import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-
 import 'package:intl/intl.dart';
+import 'package:lelang_fb/app/modules/home/views/home_view.dart';
+import 'package:lelang_fb/app/services/auction_service.dart';
 
 class LiveAuctionController extends GetxController {
   final itemId = ''.obs;
@@ -36,7 +37,7 @@ class LiveAuctionController extends GetxController {
   final sellerRating = 0.0.obs;
   final totalReviews = 0.obs;
   final sellerTotalItems = 0.obs;
-  final successfulSales = 0.obs;
+  final totalSales = 0.obs;
   final sellerJoinDate = ''.obs;
 
   final isDetailsExpanded = false.obs;
@@ -56,9 +57,54 @@ class LiveAuctionController extends GetxController {
   void onInit() {
     super.onInit();
     final args = Get.arguments;
+
+    // Setup initial values
     itemId.value = args['itemId'] ?? '';
     itemName.value = args['itemName'] ?? '';
     currentPrice.value = args['currentPrice'] ?? 0.0;
+
+    // Fix the end time calculation
+    if (args['tanggal'] != null && args['jamSelesai'] != null) {
+      try {
+        final itemDate = (args['tanggal'] as Timestamp).toDate();
+        final endTimeStr = args['jamSelesai'] as String;
+        final endTimeParts = endTimeStr.split(':');
+        final now = DateTime.now();
+
+        // Create end time
+        endTime.value = DateTime(
+          itemDate.year,
+          itemDate.month,
+          itemDate.day,
+          int.parse(endTimeParts[0]),
+          int.parse(endTimeParts[1]),
+        );
+
+        // If end time is in the past on the same day, move to next day
+        if (endTime.value.isBefore(now) &&
+            itemDate.year == now.year &&
+            itemDate.month == now.month &&
+            itemDate.day == now.day) {
+          endTime.value = endTime.value.add(Duration(days: 1));
+        }
+
+        // Check if auction is ended
+        isAuctionEnded.value = now.isAfter(endTime.value);
+        if (isAuctionEnded.value) {
+          timeRemaining.value = 'Auction Ended';
+        } else {
+          startTimer();
+        }
+
+        print('Item date: $itemDate');
+        print('End time string: $endTimeStr');
+        print('Calculated end time: ${endTime.value}');
+        print('Now: $now');
+        print('Is ended: ${isAuctionEnded.value}');
+      } catch (e) {
+        print('Error setting end time: $e');
+      }
+    }
 
     if (args['imageUrls'] != null) {
       if (args['imageUrls'] is List) {
@@ -74,38 +120,6 @@ class LiveAuctionController extends GetxController {
     itemRarity.value = args['rarity'] ?? 'Common';
     itemDescription.value = args['description'] ?? 'No description available';
 
-    if (args['tanggal'] != null && args['jamSelesai'] != null) {
-      try {
-        final itemDate = (args['tanggal'] as Timestamp).toDate();
-        final endTimeStr = args['jamSelesai'] as String;
-        final endTimeParts = endTimeStr.split(':');
-
-        final calculatedEndTime = DateTime(
-          itemDate.year,
-          itemDate.month,
-          itemDate.day,
-          int.parse(endTimeParts[0]),
-          int.parse(endTimeParts[1]),
-        );
-
-        if (calculatedEndTime.isBefore(DateTime.now())) {
-          endTime.value = calculatedEndTime.add(Duration(days: 1));
-        } else {
-          endTime.value = calculatedEndTime;
-        }
-
-        print('Item date: $itemDate');
-        print('End time string: $endTimeStr');
-        print('Calculated end time: ${endTime.value}');
-
-        isAuctionEnded.value = false;
-        checkAuctionStatus();
-      } catch (e) {
-        print('Error setting end time: $e');
-        endTime.value = DateTime.now().add(Duration(hours: 24));
-      }
-    }
-
     if (itemId.isNotEmpty) {
       setupStreams();
       startTimer();
@@ -116,6 +130,7 @@ class LiveAuctionController extends GetxController {
     }
 
     isLoading.value = false;
+    checkAuctionStatus();
   }
 
   void setupStreams() {
@@ -132,6 +147,21 @@ class LiveAuctionController extends GetxController {
         .limit(10)
         .snapshots();
 
+    // Listen to item changes
+    itemStream.listen((snapshot) {
+      if (snapshot.exists) {
+        final data = snapshot.data() as Map<String, dynamic>;
+        currentPrice.value = data['current_price'] ?? 0.0;
+
+        // Check if auction just ended
+        if (data['status'] == 'closed' && !hasShownWinnerDialog.value) {
+          hasShownWinnerDialog.value = true;
+          showWinnerDialog(); // Tampilkan dialog tanpa cek winner_id
+        }
+      }
+    });
+
+    // Listen to bids
     listenToStreams();
   }
 
@@ -168,34 +198,28 @@ class LiveAuctionController extends GetxController {
     final now = DateTime.now();
     final remaining = endTime.value.difference(now);
 
-    print('Current time: $now');
-    print('End time: ${endTime.value}');
-    print('Time difference in minutes: ${remaining.inMinutes}');
+    if (remaining.isNegative) {
+      if (!isAuctionEnded.value) {
+        isAuctionEnded.value = true;
+        timeRemaining.value = 'Auction Ended';
+        _timer?.cancel();
 
-    if (remaining.isNegative && endTime.value.isBefore(now)) {
-      isAuctionEnded.value = true;
-      timeRemaining.value = 'Auction Ended';
-      _timer?.cancel();
-
-      if (!hasShownWinnerDialog.value) {
-        hasShownWinnerDialog.value = true;
-        showWinnerDialog();
+        final itemRef =
+            FirebaseFirestore.instance.collection('items').doc(itemId.value);
+        AuctionService.checkAndUpdateStatus(itemRef);
       }
       return;
     }
 
-    isAuctionEnded.value = false;
     final hours = remaining.inHours;
     final minutes = remaining.inMinutes % 60;
     final seconds = remaining.inSeconds % 60;
 
-    if (hours > 0) {
-      timeRemaining.value = '${hours}h ${minutes}m ${seconds}s';
-    } else if (minutes > 0) {
-      timeRemaining.value = '${minutes}m ${seconds}s';
-    } else {
-      timeRemaining.value = '${seconds}s';
-    }
+    timeRemaining.value = hours > 0
+        ? '${hours}h ${minutes}m ${seconds}s'
+        : minutes > 0
+            ? '${minutes}m ${seconds}s'
+            : '${seconds}s';
   }
 
   Future<void> placeBid(double amount) async {
@@ -211,34 +235,36 @@ class LiveAuctionController extends GetxController {
         return;
       }
 
+      // Firestore user data
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        throw 'User profile not found';
+      }
+
+      final userData = userDoc.data()!;
+      final userPhotoUrl = userData['photoURL'];
+      final userName = userData['displayName'] ?? 'Anonymous';
+
+      // Check item and place bid
       final itemDoc = await FirebaseFirestore.instance
           .collection('items')
           .doc(itemId.value)
           .get();
 
-      if (itemDoc.data()?['seller_id'] == user.uid) {
-        Get.snackbar(
-          'Cannot Bid',
-          'You cannot bid on your own item',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        return;
+      if (!itemDoc.exists) {
+        throw 'Item not found';
       }
 
-      final highestBid = await FirebaseFirestore.instance
-          .collection('items')
-          .doc(itemId.value)
-          .collection('bids')
-          .orderBy('amount', descending: true)
-          .limit(1)
-          .get();
+      final itemData = itemDoc.data()!;
 
-      if (highestBid.docs.isNotEmpty &&
-          highestBid.docs.first.data()['bidder_id'] == user.uid) {
+      if (itemData['last_bidder'] == user.uid) {
         Get.snackbar(
-          'Already Highest Bidder',
-          'You already have the highest bid on this item',
+          'Bid Rejected',
+          'You are already the highest bidder',
           backgroundColor: Colors.amber,
           colorText: Colors.black87,
         );
@@ -257,56 +283,13 @@ class LiveAuctionController extends GetxController {
 
       isLoading.value = true;
 
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (!userDoc.exists) {
-        throw 'User profile not found';
-      }
-
-      final userData = userDoc.data()!;
-
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final itemRef =
-            FirebaseFirestore.instance.collection('items').doc(itemId.value);
-
-        final itemDoc = await transaction.get(itemRef);
-
-        if (!itemDoc.exists) {
-          throw 'Item not found';
-        }
-
-        if (itemDoc.data()!['current_price'] >= amount) {
-          throw 'Someone has already placed a higher bid';
-        }
-
-        final bidCountSnapshot = await FirebaseFirestore.instance
-            .collection('items')
-            .doc(itemId.value)
-            .collection('bids')
-            .count()
-            .get();
-
-        final newBidCount = bidCountSnapshot.count! + 1;
-
-        transaction.update(itemRef, {
-          'current_price': amount,
-          'bid_count': newBidCount,
-        });
-
-        transaction.set(
-          itemRef.collection('bids').doc(),
-          {
-            'amount': amount,
-            'bidder_id': user.uid,
-            'bidder_name': userData['displayName'] ?? 'Anonymous',
-            'bidder_photo': userData['photoURL'],
-            'timestamp': FieldValue.serverTimestamp(),
-          },
-        );
-      });
+      await AuctionService.placeBid(
+        itemId: itemId.value,
+        userId: user.uid,
+        amount: amount,
+        userName: userName,
+        userPhoto: userPhotoUrl, // Use photo from Firestore
+      );
 
       bidController.clear();
       Get.snackbar(
@@ -333,10 +316,18 @@ class LiveAuctionController extends GetxController {
 
     isAuctionEnded.value = remaining.isNegative && endTime.value.isBefore(now);
 
-    print('Now: $now');
-    print('End time: ${endTime.value}');
-    print('Time remaining: ${remaining.inMinutes} minutes');
-    print('Is ended: ${isAuctionEnded.value}');
+    if (isAuctionEnded.value && !hasShownWinnerDialog.value) {
+      FirebaseFirestore.instance
+          .collection('items')
+          .doc(itemId.value)
+          .get()
+          .then((doc) {
+        if (doc.exists && Get.currentRoute.contains('live-auction')) {
+          hasShownWinnerDialog.value = true;
+          showWinnerDialog(); // Tampilkan dialog untuk semua bidder
+        }
+      });
+    }
   }
 
   Future<void> fetchUserBalance() async {
@@ -368,6 +359,7 @@ class LiveAuctionController extends GetxController {
         sellerName.value = data['displayName'] ?? 'Anonymous';
         sellerPhotoUrl.value = data['photoURL'] ?? '';
         isVerifiedSeller.value = data['isVerified'] ?? false;
+        totalSales.value = data['total_sales'] ?? 0;
         sellerRating.value = (data['rating'] ?? 0.0).toDouble();
         totalReviews.value = data['ratingCount'] ?? 0;
 
@@ -394,89 +386,30 @@ class LiveAuctionController extends GetxController {
   Future<void> handleAuctionEnd(
       String winnerId, double winningAmount, String sellerId) async {
     try {
-      await FirebaseFirestore.instance.runTransaction((transaction) async {
-        final winnerRef =
-            FirebaseFirestore.instance.collection('users').doc(winnerId);
-        final sellerRef =
-            FirebaseFirestore.instance.collection('users').doc(sellerId);
-        final itemRef =
-            FirebaseFirestore.instance.collection('items').doc(itemId.value);
+      final itemRef =
+          FirebaseFirestore.instance.collection('items').doc(itemId.value);
+      final itemData = {
+        'name': itemName.value,
+        'seller_id': sellerId,
+        'current_price': winningAmount,
+        'winner_id': winnerId,
+      };
 
-        final winnerDoc = await transaction.get(winnerRef);
-        final sellerDoc = await transaction.get(sellerRef);
-        final itemDoc = await transaction.get(itemRef);
+      await AuctionService.handleAuctionEnd(itemRef, itemData);
 
-        if (!winnerDoc.exists || !sellerDoc.exists || !itemDoc.exists) {
-          throw 'Required documents not found';
-        }
-
-        transaction.update(
-            winnerRef, {'balance': FieldValue.increment(-winningAmount)});
-        transaction.update(
-            sellerRef, {'balance': FieldValue.increment(winningAmount)});
-
-        final winnerTransRef =
-            FirebaseFirestore.instance.collection('transactions').doc();
-        transaction.set(winnerTransRef, {
-          'userId': winnerId,
-          'type': 'auction_payment',
-          'amount': -winningAmount,
-          'itemId': itemId.value,
-          'itemName': itemName.value,
-          'timestamp': FieldValue.serverTimestamp(),
-          'status': 'completed',
-          'description': 'Payment for winning auction: ${itemName.value}',
-          'transactionId': winnerTransRef.id
-        });
-
-        final sellerTransRef =
-            FirebaseFirestore.instance.collection('transactions').doc();
-        transaction.set(sellerTransRef, {
-          'userId': sellerId,
-          'type': 'auction_received',
-          'amount': winningAmount,
-          'itemId': itemId.value,
-          'itemName': itemName.value,
-          'timestamp': FieldValue.serverTimestamp(),
-          'status': 'completed',
-          'description': 'Payment received for auction: ${itemName.value}',
-          'transactionId': sellerTransRef.id
-        });
-
-        transaction.update(itemRef, {
-          'status': 'closed',
-          'winner_id': winnerId,
-          'completed_at': FieldValue.serverTimestamp(),
-        });
-
-        // Winner notification
-        await _sendAuctionNotification(
-          userId: winnerId,
-          title: 'Auction Won & Payment Processed',
-          message: 'You won ${itemName.value} for ${NumberFormat.currency(
-            locale: 'id',
-            symbol: 'Rp ',
-            decimalDigits: 0,
-          ).format(winningAmount)}',
-          type: 'auction_won',
-        );
-
-        // Seller notification
-        await _sendAuctionNotification(
-          userId: sellerId,
-          title: 'Auction Ended',
-          message:
-              'Your item ${itemName.value} was sold for ${NumberFormat.currency(
-            locale: 'id',
-            symbol: 'Rp ',
-            decimalDigits: 0,
-          ).format(winningAmount)}',
-          type: 'auction_sold',
-        );
-      });
+      fetchUserBalance();
     } catch (e) {
       print('Error handling auction end: $e');
+      Get.snackbar('Error', 'Failed to complete auction');
     }
+  }
+
+  Future<String> _getWinnerName(String winnerId) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(winnerId)
+        .get();
+    return doc.data()?['displayName'] ?? 'Anonymous';
   }
 
   Future<void> showWinnerDialog() async {
@@ -489,9 +422,10 @@ class LiveAuctionController extends GetxController {
           .limit(1)
           .get();
 
+      final currentUser = FirebaseAuth.instance.currentUser;
+
       if (winningBid.docs.isNotEmpty) {
         final winnerData = winningBid.docs.first.data();
-        final currentUser = FirebaseAuth.instance.currentUser;
         final winnerId = winnerData['bidder_id'];
         final winningAmount = winnerData['amount'];
         final itemRef =
@@ -505,6 +439,7 @@ class LiveAuctionController extends GetxController {
         String title = '';
         Color backgroundColor;
 
+        // Tentukan pesan berdasarkan status user (winner/non-winner)
         if (currentUser?.uid == winnerId) {
           title = 'Congratulations! 🎉';
           message =
@@ -525,10 +460,12 @@ class LiveAuctionController extends GetxController {
           backgroundColor = Colors.blue;
         }
 
+        // Show dialog with barrier color
         await Get.dialog(
           WillPopScope(
             onWillPop: () async => false,
             child: AlertDialog(
+              backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
               ),
@@ -566,7 +503,7 @@ class LiveAuctionController extends GetxController {
                     ),
                     onPressed: () {
                       Get.back();
-                      Get.back();
+                      Get.offAll(() => HomeView());
                     },
                     child: Text(
                       'OK',
@@ -582,12 +519,15 @@ class LiveAuctionController extends GetxController {
             ),
           ),
           barrierDismissible: false,
+          barrierColor: Colors.black.withOpacity(0.5),
+          useSafeArea: true,
         );
       } else {
         await Get.dialog(
           WillPopScope(
             onWillPop: () async => false,
             child: AlertDialog(
+              backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
               ),
@@ -624,7 +564,7 @@ class LiveAuctionController extends GetxController {
                     ),
                     onPressed: () {
                       Get.back();
-                      Get.back();
+                      Get.to(HomeView());
                     },
                     child: Text(
                       'OK',
@@ -640,35 +580,12 @@ class LiveAuctionController extends GetxController {
             ),
           ),
           barrierDismissible: false,
+          barrierColor: Colors.black.withOpacity(0.5),
+          useSafeArea: true,
         );
       }
     } catch (e) {
       print('Error showing winner dialog: $e');
-    }
-  }
-
-  Future<void> _sendAuctionNotification({
-    required String userId,
-    required String title,
-    required String message,
-    required String type,
-  }) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('notifications')
-          .add({
-        'title': title,
-        'message': message,
-        'type': type,
-        'timestamp': FieldValue.serverTimestamp(),
-        'read': false,
-        'itemId': itemId.value,
-        'actionUrl': '',
-      });
-    } catch (e) {
-      print('Error sending notification: $e');
     }
   }
 
