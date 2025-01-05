@@ -45,6 +45,7 @@ class ProfileController extends GetxController {
   final Rxn<City> selectedCity = Rxn<City>();
   final RxBool isLoadingProvinces = false.obs;
   final RxBool isLoadingCities = false.obs;
+  RxBool verify = false.obs;
 
   final RxDouble profileCompleteness = 0.0.obs;
   final Map<String, double> completenessWeights = {
@@ -68,7 +69,8 @@ class ProfileController extends GetxController {
     fetchUserData();
     fetchAddresses();
     loadProvinces();
-
+    // fetchVerificationStatus();
+    listenToVerificationStatus();
     ever(selectedProvince, (Province? province) {
       if (province != null) {
         loadCities(province.id);
@@ -100,7 +102,7 @@ class ProfileController extends GetxController {
       if (data != null) {
         bool isVerified = data['verified_buyer_seller'] ?? false;
         if (isVerified != verify) {
-          verify = isVerified;
+          verify.value = isVerified;
           hasShownVerificationMessage.value = false;
         }
       }
@@ -190,8 +192,6 @@ class ProfileController extends GetxController {
       isLoading.value = false;
     }
   }
-
-  bool verify = false;
 
   final count = 0.obs;
 
@@ -804,6 +804,19 @@ class ProfileController extends GetxController {
       }
     } catch (e) {
       print('Error updating verification status: $e');
+    }
+  }
+
+  void listenToVerificationStatus() {
+    final User? currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      final userRef = _firestore.collection('users').doc(currentUser.uid);
+
+      userRef.snapshots().listen((snapshot) {
+        if (snapshot.exists) {
+          verify.value = snapshot.data()?['verified_buyer_seller'] == true;
+        }
+      });
     }
   }
 }

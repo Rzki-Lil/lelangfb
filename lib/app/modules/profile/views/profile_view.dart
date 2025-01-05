@@ -94,24 +94,26 @@ class ProfileView extends GetView<ProfileController> {
                           ),
                         ),
                         SizedBox(height: 4),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            vertical: 4,
-                            horizontal: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: controller.verify
-                                ? AppColors.hijauTua
-                                : AppColors.red,
-                            borderRadius: BorderRadius.circular(7),
-                          ),
-                          child: Text(
-                            controller.verify
-                                ? 'Verified Seller'
-                                : 'Unverified',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
+                        Obx(
+                          () => Container(
+                            padding: EdgeInsets.symmetric(
+                              vertical: 4,
+                              horizontal: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: controller.verify.value
+                                  ? AppColors.hijauTua
+                                  : AppColors.red,
+                              borderRadius: BorderRadius.circular(7),
+                            ),
+                            child: Text(
+                              controller.verify.value
+                                  ? 'Verified Seller'
+                                  : 'Unverified',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ),
