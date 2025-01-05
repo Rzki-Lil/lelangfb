@@ -155,7 +155,7 @@ class AppPages {
       transition: Transition.fadeIn,
     ),
     GetPage(
-      name: Routes.CLOSED_AUCTION, // Add this route constant
+      name: Routes.CLOSED_AUCTION,
       page: () => const ClosedAuctionsView(),
       binding: BindingsBuilder(() {
         Get.lazyPut<ClosedAuctionsController>(() => ClosedAuctionsController());

@@ -175,32 +175,6 @@ class ProfileView extends GetView<ProfileController> {
   }
 }
 
-class Iconnn extends StatelessWidget {
-  String icon;
-  double width;
-  double height;
-  VoidCallback? onPressed;
-  Iconnn({
-    super.key,
-    required this.icon,
-    this.height = 24,
-    this.width = 24,
-    this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onPressed,
-      icon: Image.asset(
-        icon,
-        width: width,
-        height: height,
-      ),
-    );
-  }
-}
-
 class Buttonn extends StatelessWidget {
   IconData? icon;
   String? image;
