@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -57,15 +58,58 @@ class NotificationsController extends GetxController {
   }
 
   Future<void> markAsRead(String notificationId) async {
-    final userId = _auth.currentUser?.uid;
-    if (userId == null) return;
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) return;
 
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('notifications')
-        .doc(notificationId)
-        .update({'read': true});
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('notifications')
+          .doc(notificationId)
+          .update({'read': true});
+
+      // Optional: Show subtle feedback
+      Get.snackbar(
+        'Success',
+        'Notification marked as read',
+        backgroundColor: Colors.green.withOpacity(0.1),
+        colorText: Colors.green,
+        duration: Duration(seconds: 1),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      print('Error marking notification as read: $e');
+    }
+  }
+
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      final userId = _auth.currentUser?.uid;
+      if (userId == null) return;
+
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('notifications')
+          .doc(notificationId)
+          .delete();
+
+      Get.snackbar(
+        'Success',
+        'Notification deleted',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (e) {
+      print('Error deleting notification: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to delete notification',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   static Future<int> getUnreadCount() async {

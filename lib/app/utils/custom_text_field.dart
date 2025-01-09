@@ -116,7 +116,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   child: widget.prefixIcon!,
                 )
               : null,
-          prefix: widget.prefix,
+          prefix: widget.prefix, // Add this line
           suffixIcon: widget.isPassword
               ? IconButton(
                   icon: Icon(

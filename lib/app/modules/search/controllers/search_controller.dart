@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lelang_fb/app/routes/app_pages.dart';
+import 'package:lelang_fb/app/services/auction_service.dart';
 import 'package:lelang_fb/app/utils/live_auction_card.dart';
 import 'package:lelang_fb/app/utils/upcoming_auction_card.dart';
 
@@ -202,11 +203,18 @@ class SearchingController extends GetxController {
           int.parse(jamSelesai[1]),
         );
 
+        // Safe conversion of current_price to double
+        final currentPrice = item['current_price'] != null
+            ? (item['current_price'] is int)
+                ? (item['current_price'] as int).toDouble()
+                : (item['current_price'] as num).toDouble()
+            : 0.0;
+
         return LiveAuctionCard(
           imageUrl:
               item['imageURL'] is List ? item['imageURL'][0] : item['imageURL'],
           name: item['name'] ?? 'Unnamed Item',
-          price: (item['current_price'] ?? 0.0).toDouble(),
+          price: currentPrice,
           location: item['lokasi'] ?? 'No location',
           rarity: item['rarity'] ?? 'Common',
           id: item['id'],
@@ -218,7 +226,7 @@ class SearchingController extends GetxController {
             arguments: {
               'itemId': item['id'],
               'itemName': item['name'],
-              'currentPrice': item['current_price'] ?? 0.0,
+              'currentPrice': currentPrice, // Use the safely converted price
               'tanggal': item['tanggal'],
               'jamMulai': item['jamMulai'],
               'jamSelesai': item['jamSelesai'],
@@ -238,17 +246,30 @@ class SearchingController extends GetxController {
 
       return Container();
     } else {
+      // Safe conversion of starting_price to double
+      final startingPrice = item['starting_price'] != null
+          ? (item['starting_price'] is int)
+              ? (item['starting_price'] as int).toDouble()
+              : (item['starting_price'] as num).toDouble()
+          : 0.0;
+
       return UpcomingAuctionCard(
         imageUrl:
             item['imageURL'] is List ? item['imageURL'][0] : item['imageURL'],
         name: item['name'] ?? 'Unnamed Item',
-        price: (item['starting_price'] ?? 0.0).toDouble(),
+        price: startingPrice,
         location: item['lokasi'] ?? 'No location',
         rarity: item['rarity'] ?? 'Common',
         date: (item['tanggal'] as Timestamp).toDate(),
         startTime: item['jamMulai'] ?? '',
         category: item['category'] ?? 'Others',
         onTap: () => Get.toNamed(Routes.DETAIL_ITEM, arguments: item),
+        id: item['id'],
+        onStatusChange: (itemId) {
+          AuctionService.checkAndUpdateStatus(
+            FirebaseFirestore.instance.collection('items').doc(itemId),
+          );
+        },
       );
     }
   }

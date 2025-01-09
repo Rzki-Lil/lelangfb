@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:lelang_fb/app/modules/home/views/home_view.dart';
+import 'package:lelang_fb/app/routes/app_pages.dart';
 import 'package:lelang_fb/app/services/auction_service.dart';
 
 class LiveAuctionController extends GetxController {
@@ -19,8 +20,8 @@ class LiveAuctionController extends GetxController {
   final bidController = TextEditingController();
   Timer? _timer;
 
-  late Stream<DocumentSnapshot> itemStream;
-  late Stream<QuerySnapshot> bidsStream;
+  StreamSubscription<DocumentSnapshot>? _itemSubscription;
+  StreamSubscription<QuerySnapshot>? _biddersSubscription;
 
   final itemImages = <String>[].obs;
   final itemLocation = ''.obs;
@@ -134,63 +135,104 @@ class LiveAuctionController extends GetxController {
   }
 
   void setupStreams() {
-    itemStream = FirebaseFirestore.instance
+    _itemSubscription = FirebaseFirestore.instance
         .collection('items')
         .doc(itemId.value)
-        .snapshots();
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        final data = snapshot.data() as Map<String, dynamic>;
 
-    bidsStream = FirebaseFirestore.instance
+        currentPrice.value = (data['current_price'] ?? 0).toDouble();
+        itemName.value = data['name'] ?? itemName.value;
+        itemDescription.value = data['description'] ?? itemDescription.value;
+        itemCategory.value = data['category'] ?? itemCategory.value;
+        itemRarity.value = data['rarity'] ?? itemRarity.value;
+        itemLocation.value =
+            _extractProvince(data['lokasi'] ?? 'Unknown Province');
+
+        if (data['imageURL'] != null) {
+          if (data['imageURL'] is List) {
+            itemImages.value = List<String>.from(data['imageURL']);
+          } else {
+            itemImages.value = [data['imageURL'].toString()];
+          }
+        }
+
+        // Check auction status
+        if (data['status'] == 'closed' && !hasShownWinnerDialog.value) {
+          hasShownWinnerDialog.value = true;
+          showWinnerDialog();
+        }
+      }
+    }, onError: (error) {
+      print('Error in item stream: $error');
+    });
+
+    // limit bid
+    _biddersSubscription = FirebaseFirestore.instance
         .collection('items')
         .doc(itemId.value)
         .collection('bids')
         .orderBy('amount', descending: true)
         .limit(10)
-        .snapshots();
-
-    // Listen to item changes
-    itemStream.listen((snapshot) {
-      if (snapshot.exists) {
-        final data = snapshot.data() as Map<String, dynamic>;
-        currentPrice.value = data['current_price'] ?? 0.0;
-
-        // Check if auction just ended
-        if (data['status'] == 'closed' && !hasShownWinnerDialog.value) {
-          hasShownWinnerDialog.value = true;
-          showWinnerDialog(); // Tampilkan dialog tanpa cek winner_id
+        .snapshots()
+        .listen((snapshot) {
+      topBidders.value = snapshot.docs.map((doc) {
+        final data = doc.data();
+        if (data['timestamp'] != null) {
+          data['timestamp'] = (data['timestamp'] as Timestamp).toDate();
         }
-      }
+        return data;
+      }).toList();
+    }, onError: (error) {
+      print('Error in bidders stream: $error');
     });
 
-    // Listen to bids
-    listenToStreams();
+    if (Get.arguments['sellerId'] != null) {
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(Get.arguments['sellerId'])
+          .snapshots()
+          .listen((snapshot) {
+        if (snapshot.exists) {
+          final data = snapshot.data()!;
+          sellerName.value = data['displayName'] ?? 'Anonymous';
+          sellerPhotoUrl.value = data['photoURL'] ?? '';
+          isVerifiedSeller.value = data['verified_user'] ?? false;
+          totalSales.value = data['total_sales'] ?? 0;
+          sellerRating.value = (data['rating'] ?? 0.0).toDouble();
+          totalReviews.value = data['ratingCount'] ?? 0;
+
+          if (data['createdAt'] != null) {
+            final joinDate = (data['createdAt'] as Timestamp).toDate();
+            sellerJoinDate.value = DateFormat('MMM yyyy').format(joinDate);
+          }
+        }
+      }, onError: (error) {
+        print('Error in seller stream: $error');
+      });
+    }
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .listen((snapshot) {
+        if (snapshot.exists) {
+          userBalance.value = (snapshot.data()?['balance'] ?? 0.0).toDouble();
+        }
+      }, onError: (error) {
+        print('Error in balance stream: $error');
+      });
+    }
   }
 
   void startTimer() {
     _timer = Timer.periodic(Duration(seconds: 1), (timer) {
       updateTimeRemaining();
-    });
-  }
-
-  void listenToStreams() {
-    itemStream.listen((snapshot) {
-      if (snapshot.exists) {
-        final data = snapshot.data() as Map<String, dynamic>;
-        currentPrice.value = data['current_price'] ?? 0.0;
-        if (data['end_time'] != null) {
-          endTime.value = (data['end_time'] as Timestamp).toDate();
-        }
-      }
-    });
-
-    bidsStream.listen((snapshot) {
-      topBidders.clear();
-      for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        if (data['timestamp'] != null) {
-          data['timestamp'] = (data['timestamp'] as Timestamp).toDate();
-        }
-        topBidders.add(data);
-      }
     });
   }
 
@@ -235,46 +277,20 @@ class LiveAuctionController extends GetxController {
         return;
       }
 
-      // Firestore user data
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-
-      if (!userDoc.exists) {
-        throw 'User profile not found';
-      }
-
-      final userData = userDoc.data()!;
-      final userPhotoUrl = userData['photoURL'];
-      final userName = userData['displayName'] ?? 'Anonymous';
-
-      // Check item and place bid
-      final itemDoc = await FirebaseFirestore.instance
-          .collection('items')
-          .doc(itemId.value)
-          .get();
-
-      if (!itemDoc.exists) {
-        throw 'Item not found';
-      }
-
-      final itemData = itemDoc.data()!;
-
-      if (itemData['last_bidder'] == user.uid) {
-        Get.snackbar(
-          'Bid Rejected',
-          'You are already the highest bidder',
-          backgroundColor: Colors.amber,
-          colorText: Colors.black87,
-        );
-        return;
-      }
-
       if (amount <= currentPrice.value) {
         Get.snackbar(
           'Invalid Bid',
           'Your bid must be higher than the current price',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      if (amount > userBalance.value) {
+        Get.snackbar(
+          'Insufficient Balance',
+          'Your balance is not enough to place this bid',
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
@@ -287,8 +303,7 @@ class LiveAuctionController extends GetxController {
         itemId: itemId.value,
         userId: user.uid,
         amount: amount,
-        userName: userName,
-        userPhoto: userPhotoUrl, // Use photo from Firestore
+        userName: user.displayName ?? 'Anonymous',
       );
 
       bidController.clear();
@@ -298,6 +313,8 @@ class LiveAuctionController extends GetxController {
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
+
+      await fetchUserBalance();
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -502,69 +519,8 @@ class LiveAuctionController extends GetxController {
                       ),
                     ),
                     onPressed: () {
-                      Get.back();
-                      Get.offAll(() => HomeView());
-                    },
-                    child: Text(
-                      'OK',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          barrierDismissible: false,
-          barrierColor: Colors.black.withOpacity(0.5),
-          useSafeArea: true,
-        );
-      } else {
-        await Get.dialog(
-          WillPopScope(
-            onWillPop: () async => false,
-            child: AlertDialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              title: Column(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: Colors.grey,
-                    size: 50,
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    'Auction Ended',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'No bids were placed on this item.',
-                    style: TextStyle(fontSize: 16),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey,
-                      minimumSize: Size(double.infinity, 45),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    onPressed: () {
-                      Get.back();
-                      Get.to(HomeView());
+                      Get.back(); // Close dialog
+                      Get.until((route) => Get.currentRoute == Routes.HOME);
                     },
                     child: Text(
                       'OK',
@@ -592,7 +548,10 @@ class LiveAuctionController extends GetxController {
   @override
   void onClose() {
     _timer?.cancel();
+    _itemSubscription?.cancel();
+    _biddersSubscription?.cancel();
     bidController.dispose();
+    Get.delete<LiveAuctionController>();
     super.onClose();
   }
 }

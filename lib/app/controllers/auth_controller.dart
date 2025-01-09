@@ -44,7 +44,6 @@ class AuthController extends GetxController {
         }
       }
 
-      // Initialize auth state listener after restore attempt
       currentUser = Rx<User?>(_auth.currentUser);
       currentUser.bindStream(streamAuthStatus);
       ever(currentUser, _setInitialScreen);
@@ -156,38 +155,62 @@ class AuthController extends GetxController {
 
   Future<void> createOrUpdateUserData(User user) async {
     try {
-      final userRef =
-          FirebaseFirestore.instance.collection('users').doc(user.uid);
-      final docSnapshot = await userRef.get();
+      final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+            final docSnapshot = await userRef.get();
 
       if (!docSnapshot.exists) {
-        await userRef.set({
+        final userData = {
           'uid': user.uid,
           'email': user.email,
-          'displayName': user.displayName ?? 'User',
+          'displayName': user.displayName ?? user.email?.split('@')[0] ?? 'User', 
           'photoURL': user.photoURL ?? '',
           'createdAt': FieldValue.serverTimestamp(),
+          'lastLoginAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
-          'phoneNumber': user.phoneNumber,
+          'phoneNumber': user.phoneNumber ?? '',
           'isVerified': user.emailVerified,
           'provider': user.providerData.map((e) => e.providerId).toList(),
           'totalItems': 0,
           'rating': 0.0,
           'ratingCount': 0,
-        });
+        };
+
+        await userRef.set(userData);
+        print('New user profile created for ${user.email} with name ${user.displayName}');
       } else {
         final existingData = docSnapshot.data()!;
-        await userRef.update({
-          'email': user.email,
-          'displayName': user.displayName ?? existingData['displayName'],
-          'updatedAt': FieldValue.serverTimestamp(),
-          'phoneNumber': user.phoneNumber,
+        
+        if (!existingData.containsKey('createdAt')) {
+          await userRef.update({
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        Map<String, dynamic> updateData = {
+          'lastLoginAt': FieldValue.serverTimestamp(),
           'isVerified': user.emailVerified,
           'provider': user.providerData.map((e) => e.providerId).toList(),
-        });
+        };
+
+        if (user.email != existingData['email']) {
+          updateData['email'] = user.email;
+          updateData['updatedAt'] = FieldValue.serverTimestamp();
+        }
+        if (user.displayName != null && user.displayName != existingData['displayName']) {
+          updateData['displayName'] = user.displayName;
+          updateData['updatedAt'] = FieldValue.serverTimestamp();
+        }
+        if (user.phoneNumber != existingData['phoneNumber']) {
+          updateData['phoneNumber'] = user.phoneNumber ?? '';
+          updateData['updatedAt'] = FieldValue.serverTimestamp();
+        }
+
+        await userRef.update(updateData);
+        print('Updated user profile for ${user.email}');
       }
     } catch (e) {
-      print('Error creating/updating user data: $e');
+      print('Error in createOrUpdateUserData: $e');
+      throw e;
     }
   }
 
@@ -197,57 +220,37 @@ class AuthController extends GetxController {
         email: email,
         password: password,
       );
+
       if (userCredential.user != null) {
-        final docSnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userCredential.user!.uid)
-            .get();
-
-        if (docSnapshot.exists) {
-          final existingData = docSnapshot.data()!;
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userCredential.user!.uid)
-              .update({
-            'email': userCredential.user!.email,
-            'displayName':
-                userCredential.user!.displayName ?? existingData['displayName'],
-            'updatedAt': FieldValue.serverTimestamp(),
-            'phoneNumber':
-                userCredential.user!.phoneNumber ?? existingData['phoneNumber'],
-            'isVerified': userCredential.user!.emailVerified,
-            'provider': userCredential.user!.providerData
-                .map((e) => e.providerId)
-                .toList(),
-          });
-        } else {
+        try {
           await createOrUpdateUserData(userCredential.user!);
-        }
 
-        // Tambahkan penyimpanan status login
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', true);
-        await prefs.setBool('isGoogleSignIn', false);
+          SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('isLoggedIn', true);
+          await prefs.setBool('isGoogleSignIn', false);
+          await prefs.setString('email', email);
+          await prefs.setString('password', password);
 
-        // Always store credentials for persistence
-        await prefs.setString('email', email);
-        await prefs.setString('password', password);
+          printUserInfo(userCredential.user!);
 
-        printUserInfo(userCredential.user!);
-        if (userCredential.user!.emailVerified) {
-          if (rememberMe.value) {
-            saveLoginInfo(email, password);
+          if (userCredential.user!.emailVerified) {
+            if (rememberMe.value) {
+              saveLoginInfo(email, password);
+            }
+            navigateToHome();
+            Get.snackbar(
+              'Berhasil',
+              'Masuk sebagai ${userCredential.user?.displayName}',
+              backgroundColor: Colors.green,
+              colorText: Colors.white,
+            );
+          } else {
+            await userCredential.user!.sendEmailVerification();
+            navigateToEmailVerification();
           }
-          navigateToHome();
-          Get.snackbar(
-            'Berhasil',
-            'Masuk sebagai ${userCredential.user?.displayName} ',
-            backgroundColor: Colors.green,
-            colorText: Colors.white,
-          );
-        } else {
-          await userCredential.user!.sendEmailVerification();
-          navigateToEmailVerification();
+        } catch (e) {
+          print('Error updating user data: $e');
+          Get.snackbar('Error', 'Terjadi kesalahan saat memperbarui data pengguna');
         }
       }
     } on FirebaseAuthException catch (e) {
@@ -277,7 +280,7 @@ class AuthController extends GetxController {
       if (silentSignIn) {
         googleUser = await _googleSignIn.signInSilently();
       } else {
-        await _googleSignIn.signOut(); // Only sign out if not silent sign in
+        await _googleSignIn.signOut();
         googleUser = await _googleSignIn.signIn();
       }
 
@@ -296,7 +299,6 @@ class AuthController extends GetxController {
         idToken: googleAuth.idToken,
       );
 
-      // Store Google Sign In persistence
       SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setBool('isGoogleSignIn', true);
       await prefs.setBool('isLoggedIn', true);
@@ -313,23 +315,23 @@ class AuthController extends GetxController {
               .get();
 
           if (docSnapshot.exists) {
-            final existingData = docSnapshot.data()!;
-            if (existingData['photoURL'] == null ||
-                existingData['photoURL'] == '') {
-              await createOrUpdateUserData(user);
-            } else {
-              await FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .update({
-                'email': user.email,
-                'displayName': user.displayName ?? existingData['displayName'],
-                'updatedAt': FieldValue.serverTimestamp(),
-                'phoneNumber': user.phoneNumber ?? existingData['phoneNumber'],
-                'isVerified': user.emailVerified,
-                'provider': user.providerData.map((e) => e.providerId).toList(),
-              });
+
+            Map<String, dynamic> updateData = {
+              'lastLoginAt': FieldValue.serverTimestamp(),
+              'isVerified': user.emailVerified,
+              'provider': user.providerData.map((e) => e.providerId).toList(),
+            };
+
+            if (docSnapshot.data()?['photoURL'] == null ||
+                docSnapshot.data()?['photoURL'] == '') {
+              updateData['photoURL'] = user.photoURL;
+              updateData['updatedAt'] = FieldValue.serverTimestamp();
             }
+
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .update(updateData);
           } else {
             await createOrUpdateUserData(user);
           }

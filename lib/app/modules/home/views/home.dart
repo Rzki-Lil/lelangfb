@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:lelang_fb/app/services/auction_service.dart';
 import 'package:lelang_fb/app/utils/live_auction_card.dart';
 import 'package:lelang_fb/app/utils/space.dart';
 import 'package:lelang_fb/app/utils/upcoming_auction_card.dart';
@@ -341,6 +342,14 @@ class Home extends GetView<HomeController> {
                                           'bidCount': data['bid_count'] ?? 0,
                                         },
                                       ),
+                                      onStatusChange: (itemId) {
+                                        // Update the status when timer ends
+                                        AuctionService.checkAndUpdateStatus(
+                                          FirebaseFirestore.instance
+                                              .collection('items')
+                                              .doc(itemId),
+                                        );
+                                      },
                                     ),
                                   );
                                 },
@@ -419,6 +428,14 @@ class Home extends GetView<HomeController> {
                             Routes.DETAIL_ITEM,
                             arguments: item,
                           ),
+                          id: item['id'],
+                          onStatusChange: (itemId) {
+                            AuctionService.checkAndUpdateStatus(
+                              FirebaseFirestore.instance
+                                  .collection('items')
+                                  .doc(itemId),
+                            );
+                          },
                         );
                       },
                     );

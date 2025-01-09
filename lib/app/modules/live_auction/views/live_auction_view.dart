@@ -441,7 +441,7 @@ class LiveAuctionView extends GetView<LiveAuctionController> {
                                     leading: CircleAvatar(
                                       backgroundImage: bidder['bidder_photo'] !=
                                               null
-                                          ? NetworkImage(bidder['bidder_photo'])
+                                          ? CachedNetworkImageProvider(bidder['bidder_photo'])
                                           : null,
                                       child: bidder['bidder_photo'] == null
                                           ? Icon(Icons.person)
@@ -616,75 +616,4 @@ class LiveAuctionView extends GetView<LiveAuctionController> {
     );
   }
 
-  // Widget _buildSellerInfo() {
-  //   return Padding(
-  //     padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-  //     child: Column(
-  //       children: [
-  //         ListTile(
-  //           leading: CircleAvatar(
-  //             backgroundImage: controller.sellerPhotoUrl.value.isNotEmpty
-  //                 ? NetworkImage(controller.sellerPhotoUrl.value)
-  //                 : null,
-  //             child: controller.sellerPhotoUrl.value.isEmpty
-  //                 ? Icon(Icons.person)
-  //                 : null,
-  //           ),
-  //           title: Row(
-  //             children: [
-  //               Text(
-  //                 controller.sellerName.value,
-  //                 style: TextStyle(
-  //                   fontWeight: FontWeight.bold,
-  //                   fontSize: 16,
-  //                 ),
-  //               ),
-  //               SizedBox(width: 4),
-  //               if (controller.isVerifiedSeller.value)
-  //                 Icon(
-  //                   Icons.verified,
-  //                   color: AppColors.hijauTua,
-  //                   size: 16,
-  //                 ),
-  //             ],
-  //           ),
-  //           subtitle: Row(
-  //             children: [
-  //               Icon(Icons.star, color: Colors.amber, size: 16),
-  //               SizedBox(width: 4),
-  //               Text(
-  //                 '${controller.sellerRating.value.toStringAsFixed(1)} (${controller.totalReviews.value})',
-  //                 style: TextStyle(color: Colors.grey[600]),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //         Divider(color: Colors.grey[200]),
-  //         Padding(
-  //           padding: EdgeInsets.all(16),
-  //           child: Row(
-  //             mainAxisAlignment: MainAxisAlignment.spaceAround,
-  //             children: [
-  //               _buildSellerStat(
-  //                 'Total Items',
-  //                 controller.sellerTotalItems.value.toString(),
-  //                 Icons.inventory_2_outlined,
-  //               ),
-  //               _buildSellerStat(
-  //                 'Successful Sales',
-  //                 controller.totalSales.value.toString(),
-  //                 Icons.verified_outlined,
-  //               ),
-  //               _buildSellerStat(
-  //                 'Join Date',
-  //                 controller.sellerJoinDate.value,
-  //                 Icons.calendar_today_outlined,
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 }

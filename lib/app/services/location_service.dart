@@ -61,7 +61,6 @@ class City {
 }
 
 class LocationService {
-  // cache provinces
   static List<Province> _cachedProvinces = [];
 
   static Future<List<Province>> getProvinces() async {
@@ -74,7 +73,6 @@ class LocationService {
           await rootBundle.loadString('assets/data/provinsi-kota.json');
       final List<dynamic> data = json.decode(response);
       _cachedProvinces = data.map((json) => Province.fromJson(json)).toList();
-      // Sort province
       _cachedProvinces.sort((a, b) => a.name.compareTo(b.name));
 
       return _cachedProvinces;
@@ -96,7 +94,6 @@ class LocationService {
         return [];
       }
 
-      // Sort cities
       List<City> sortedCities = List.from(province.regencies);
       sortedCities.sort((a, b) => a.name.compareTo(b.name));
 
@@ -139,7 +136,6 @@ class LocationService {
     }
   }
 
-  //search provinces
   static List<Province> searchProvinces(
       String query, List<Province> provinces) {
     if (query.isEmpty) return provinces;
@@ -150,7 +146,6 @@ class LocationService {
     }).toList();
   }
 
-  //search cities
   static List<City> searchCities(String query, List<City> cities) {
     if (query.isEmpty) return cities;
 
@@ -160,12 +155,11 @@ class LocationService {
     }).toList();
   }
 
-  //province ID
   static bool isValidProvinceId(String id, List<Province> provinces) {
     return provinces.any((province) => province.id == id);
   }
 
-  //city ID
+
   static bool isValidCityId(
       String provinceId, String cityId, List<Province> provinces) {
     final cities = getCities(provinceId, provinces);

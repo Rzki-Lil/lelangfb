@@ -64,7 +64,7 @@ class HomeView extends GetView<HomeController> {
               ),
             ),
             Positioned(
-              bottom: 3, // Adjust the height of the floating button
+              bottom: 3, 
               left: MediaQuery.of(context).size.width / 2 - 30,
               child: FloatingActionButton(
                 onPressed: () async {
@@ -81,8 +81,7 @@ class HomeView extends GetView<HomeController> {
                         .get();
 
                     if (!docSnapshot.exists ||
-                        !(docSnapshot.data()?['verified_buyer_seller'] ??
-                            false)) {
+                        !(docSnapshot.data()?['verified_user'] ?? false)) {
                       Get.snackbar(
                         'Access Denied',
                         '',
@@ -116,7 +115,7 @@ class HomeView extends GetView<HomeController> {
                             ),
                             SizedBox(height: 16),
                             Text(
-                              "Follow these steps to become a verified seller:",
+                              "Follow these steps to become a verified user:",
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -137,8 +136,8 @@ class HomeView extends GetView<HomeController> {
                             ),
                             SizedBox(height: 8),
                             _buildInstructionRow(
-                              icon: Icons.verified_user,
-                              text: "Complete verification process",
+                              icon: Icons.info_rounded,
+                              text: "Complete Your information",
                               color: Colors.green,
                             ),
                           ],

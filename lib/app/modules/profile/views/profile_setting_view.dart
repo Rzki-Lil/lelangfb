@@ -1,5 +1,6 @@
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:get/get.dart';
 import 'package:lelang_fb/app/services/location_service.dart';
@@ -198,50 +199,27 @@ class ProfileSettingView extends GetView<ProfileController> {
                 ),
               ),
               SizedBox(height: 15),
-              Obx(
-                () => TextFormField(
-                  controller: controller.phone,
-                  onChanged: (value) => controller.updateCountryCode(value),
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Phone',
-                    labelStyle: TextStyle(color: Colors.grey),
-                    floatingLabelStyle: TextStyle(color: AppColors.hijauTua),
-                    hintText: '+62812312322',
-                    hintStyle: TextStyle(color: Colors.grey),
-                    prefixIcon: Padding(
-                      padding: const EdgeInsets.only(
-                          left: 2, top: 6, bottom: 2, right: 10),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(5),
-                        child: Container(
-                          padding: EdgeInsets.all(10),
-                          color: Colors.grey[100],
-                          child: Image.asset(
-                            'assets/flags/${controller.countryCode.value}.png',
-                            width: 30,
-                            height: 30,
-                          ),
-                        ),
-                      ),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5),
-                      borderSide: BorderSide(color: Colors.grey),
-                    ),
-                  ),
+              CustomTextField(
+                controller: controller.phone,
+                labelText: 'Phone',
+                textColor: Colors.black,
+                keyboardType: TextInputType.number,
+                onChanged: controller.onPhoneNumberChanged,
+                maxLength: 12,
+                prefixIcon: Icon(
+                  Icons.phone,
+                  size: 30,
                 ),
               ),
               SizedBox(height: 15),
-              Button.filled(
-                onPressed: () => controller.updateUserProfile(),
-                label: 'Save',
+              Obx(() => Button.filled(
+                onPressed: controller.isLoading.value 
+                    ? null 
+                    : () => controller.updateUserProfile(),
+                label: controller.isLoading.value ? 'Saving...' : 'Save',
                 fontSize: 20,
                 color: AppColors.hijauTua,
-              ),
+              )),
               SizedBox(height: 25),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -454,6 +432,23 @@ class ProfileSettingView extends GetView<ProfileController> {
                         border: OutlineInputBorder(),
                       ),
                     ),
+                    emptyBuilder: (context, searchEntry) => Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.search_off,
+                                color: Colors.grey, size: 30),
+                            SizedBox(height: 8),
+                            Text(
+                              'No provinces found',
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                   items: controller.provinces,
                   selectedItem: controller.selectedProvince.value,
@@ -479,6 +474,25 @@ class ProfileSettingView extends GetView<ProfileController> {
                             hintText: 'Search city...',
                             prefixIcon: Icon(Icons.search),
                             border: OutlineInputBorder(),
+                          ),
+                        ),
+                        emptyBuilder: (context, searchEntry) => Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.location_city_outlined,
+                                    color: Colors.grey, size: 30),
+                                SizedBox(height: 8),
+                                Text(
+                                  controller.selectedProvince.value == null
+                                      ? 'Please select a province first'
+                                      : 'No cities found',
+                                  style: TextStyle(color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -561,4 +575,5 @@ class ProfileSettingView extends GetView<ProfileController> {
       ),
     );
   }
+
 }

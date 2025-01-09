@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:lelang_fb/app/modules/notifications/controllers/notifications_controller.dart';
 
 import 'package:lelang_fb/core/constants/color.dart';
 
@@ -22,7 +20,6 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final notificationsController = Get.put(NotificationsController());
 
     return SliverAppBar(
       backgroundColor: Colors.white,
@@ -134,32 +131,46 @@ class HomeHeader extends StatelessWidget implements PreferredSizeWidget {
         Stack(
           children: [
             IconButton(
-              icon: Icon(Icons.notifications),
+              icon: Icon(Icons.notifications, color: Colors.grey,),
               onPressed: onNotificationTap,
             ),
-            Positioned(
-              right: 8,
-              top: 8,
-              child: Obx(() {
-                final count = notificationsController.unreadCount.value;
-                return count > 0
-                    ? Container(
-                        padding: EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          count.toString(),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      )
-                    : SizedBox();
-              }),
+            StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(FirebaseAuth.instance.currentUser?.uid)
+                  .collection('notifications')
+                  .where('read', isEqualTo: false)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return SizedBox();
+                final unreadCount = snapshot.data?.docs.length ?? 0;
+                if (unreadCount == 0) return SizedBox();
+
+                return Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      unreadCount > 99 ? '99+' : unreadCount.toString(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),

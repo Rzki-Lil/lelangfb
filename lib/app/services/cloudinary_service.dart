@@ -166,23 +166,19 @@ class CloudinaryService {
       final uri = Uri.parse(url);
       final pathSegments = uri.pathSegments;
 
-      // Handle items folder structure
       if (pathSegments.contains('items')) {
         final itemsIndex = pathSegments.indexOf('items');
         if (itemsIndex < pathSegments.length - 2) {
-          // Return full path including uid subfolder
           return 'items/${pathSegments[itemsIndex + 1]}/${pathSegments.last.split('.').first}';
         }
       }
 
-      // Check for users_profile folder
       final profileIndex = pathSegments.indexOf('users_profile');
       if (profileIndex != -1 && profileIndex < pathSegments.length - 1) {
         final filename = pathSegments.last;
         return 'users_profile/' + filename.split('.').first;
       }
 
-      // Check for carousel folder
       final carouselIndex = pathSegments.indexOf('carousel');
       if (carouselIndex != -1 && carouselIndex < pathSegments.length - 1) {
         final filename = pathSegments.last;

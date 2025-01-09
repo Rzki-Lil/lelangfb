@@ -16,6 +16,8 @@ class ListFavoriteController extends GetxController {
   final searchQuery = ''.obs;
 
   StreamSubscription<QuerySnapshot>? _favoritesSubscription;
+  Map<String, StreamSubscription<DocumentSnapshot>> _itemStatusSubscriptions =
+      {};
 
   @override
   void onInit() {
@@ -26,6 +28,10 @@ class ListFavoriteController extends GetxController {
   @override
   void onClose() {
     _favoritesSubscription?.cancel();
+    for (var sub in _itemStatusSubscriptions.values) {
+      sub.cancel();
+    }
+    _itemStatusSubscriptions.clear();
     searchController.dispose();
     super.onClose();
   }
@@ -37,19 +43,74 @@ class ListFavoriteController extends GetxController {
           .collection('users')
           .doc(user.uid)
           .collection('favorites')
-          .orderBy('addedAt', descending: true)
           .snapshots()
-          .listen((snapshot) {
-        favoriteItems.value = snapshot.docs.map((doc) {
-          final data = doc.data();
-          return {...data, 'id': doc.id};
-        }).toList();
+          .listen((snapshot) async {
+        List<Map<String, dynamic>> updatedItems = [];
+
+        for (var sub in _itemStatusSubscriptions.values) {
+          sub.cancel();
+        }
+        _itemStatusSubscriptions.clear();
+
+        for (var doc in snapshot.docs) {
+          final itemId = doc.id;
+          _setupItemStatusListener(itemId);
+
+          final itemDoc =
+              await _firestore.collection('items').doc(itemId).get();
+
+          if (itemDoc.exists) {
+            final itemData = itemDoc.data()!;
+            final status = itemData['status']?.toString().toLowerCase() ?? '';
+
+            if (status != 'closed') {
+              updatedItems.add({
+                ...itemData,
+                'id': itemId,
+                'status': status,
+              });
+            }
+          }
+        }
+
+        favoriteItems.value = updatedItems;
         isLoading.value = false;
       }, onError: (error) {
         print('Error in favorites stream: $error');
         isLoading.value = false;
       });
     }
+  }
+
+  void _setupItemStatusListener(String itemId) {
+    _itemStatusSubscriptions[itemId] = _firestore
+        .collection('items')
+        .doc(itemId)
+        .snapshots()
+        .listen((docSnapshot) {
+      if (docSnapshot.exists) {
+        final data = docSnapshot.data()!;
+        final currentStatus = data['status']?.toString().toLowerCase() ?? '';
+
+        if (currentStatus == 'closed') {
+          // Silently remove from favorites without showing dialog
+          removeFromFavorites(itemId);
+          return;
+        }
+
+        final index = favoriteItems.indexWhere((item) => item['id'] == itemId);
+        if (index != -1) {
+          final updatedItem = {
+            ...favoriteItems[index],
+            ...data,
+            'id': itemId,
+            'status': currentStatus,
+          };
+          favoriteItems[index] = updatedItem;
+          favoriteItems.refresh();
+        }
+      }
+    });
   }
 
   String getProvinceOnly(String? location) {
@@ -105,7 +166,6 @@ class ListFavoriteController extends GetxController {
         Get.snackbar('Success', 'Removed from favorites');
       }
     } catch (e) {
-      print('Error removing favorite: $e');
       Get.snackbar('Error', 'Failed to remove from favorites');
     }
   }
@@ -116,19 +176,78 @@ class ListFavoriteController extends GetxController {
           await _firestore.collection('items').doc(item['id']).get();
 
       if (itemDoc.exists) {
+        final data = itemDoc.data()!;
+        final firestoreStatus = data['status']?.toString().toLowerCase() ?? '';
+
+        if (firestoreStatus == 'closed') {
+          await removeFromFavorites(item['id']);
+          return;
+        }
+
         final fullItemData = {
-          ...itemDoc.data()!,
+          ...data,
           'id': itemDoc.id,
+          'itemId': itemDoc.id,
+          'itemName': data['name'],
+          'currentPrice': (data['current_price'] ?? 0.0).toDouble(),
+          'tanggal': data['tanggal'],
+          'jamSelesai': data['jamSelesai'],
+          'jamMulai': data['jamMulai'],
+          'imageUrls': data['imageURL'],
+          'location': data['lokasi'],
+          'category': data['category'],
+          'rarity': data['rarity'],
+          'description': data['description'],
+          'sellerId': data['seller_id'],
+          'status': firestoreStatus,
+          'bid_count': data['bid_count'] ?? 0,
         };
 
-        Get.toNamed(Routes.DETAIL_ITEM, arguments: fullItemData);
-      } else {
-        Get.snackbar('Error', 'Item no longer exists',
-            backgroundColor: Colors.red, colorText: Colors.white);
+        if (firestoreStatus == 'live') {
+          Get.toNamed(Routes.LIVE_AUCTION, arguments: fullItemData);
+        } else {
+          Get.toNamed(Routes.DETAIL_ITEM, arguments: fullItemData);
+        }
       }
     } catch (e) {
       print('Error navigating to detail: $e');
       Get.snackbar('Error', 'Could not load item details');
+    }
+  }
+
+  String _determineRealTimeStatus(
+      DateTime itemDate, String? startTime, String? endTime) {
+    if (startTime == null || endTime == null) return 'upcoming';
+
+    final now = DateTime.now();
+    final startTimeParts = startTime.split(':');
+    final endTimeParts = endTime.split(':');
+
+    if (startTimeParts.length != 2 || endTimeParts.length != 2)
+      return 'upcoming';
+
+    final auctionStart = DateTime(
+      itemDate.year,
+      itemDate.month,
+      itemDate.day,
+      int.parse(startTimeParts[0]),
+      int.parse(startTimeParts[1]),
+    );
+
+    final auctionEnd = DateTime(
+      itemDate.year,
+      itemDate.month,
+      itemDate.day,
+      int.parse(endTimeParts[0]),
+      int.parse(endTimeParts[1]),
+    );
+
+    if (now.isBefore(auctionStart)) {
+      return 'upcoming';
+    } else if (now.isAfter(auctionStart) && now.isBefore(auctionEnd)) {
+      return 'live';
+    } else {
+      return 'closed';
     }
   }
 }

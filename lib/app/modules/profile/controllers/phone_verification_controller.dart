@@ -7,61 +7,42 @@ import 'package:lelang_fb/core/constants/color.dart';
 import 'dart:math';
 
 class PhoneVerificationController extends GetxController {
+  Map<String, dynamic>? pendingUpdates;
+
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   var isVerifying = false.obs;
   var verificationCode = ''.obs;
+  var pendingPhoneNumber = ''.obs;
   final verificationCodeController = TextEditingController();
   var verificationError = ''.obs;
 
-  Future<void> sendVerificationCode(String phoneNumber) async {
+  Future<bool> sendVerificationCode(String phoneNumber) async {
     try {
       isVerifying.value = true;
       final User? user = _auth.currentUser;
 
-      if (user != null && user.email != null) {
-        final userDoc =
-            await _firestore.collection('users').doc(user.uid).get();
-        final currentPhone = userDoc.data()?['phoneNumber'];
-
-        if (currentPhone == phoneNumber) {
-          Get.snackbar(
-            'Info',
-            'This phone number is already verified',
-            backgroundColor: Colors.blue,
-            colorText: Colors.white,
-          );
-          return;
-        }
-
+      if (user != null) {
         String code = _generateVerificationCode();
         verificationCode.value = code;
+        pendingPhoneNumber.value = phoneNumber;
 
-        await _firestore.collection('phone_verifications').doc(user.uid).set({
-          'code': code,
-          'phoneNumber': phoneNumber,
-          'createdAt': FieldValue.serverTimestamp(),
-          'isVerified': false
-        });
-
-        _showVerificationDialog();
+        Get.dialog(
+          createVerificationDialog(),
+          barrierDismissible: false,
+        );
 
         Get.snackbar(
           'Verification Code',
-          'Your verification code is: $code\nPlease enter this code to verify your phone number.',
+          'Your verification code is: $code',
           duration: Duration(seconds: 30),
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
-      } else {
-        Get.snackbar(
-          'Error',
-          'You must be logged in with an email to verify your phone number',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
+
+        return true;
       }
+      return false;
     } catch (e) {
       print('Error sending verification code: $e');
       Get.snackbar(
@@ -70,6 +51,7 @@ class PhoneVerificationController extends GetxController {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+      return false;
     } finally {
       isVerifying.value = false;
     }
@@ -80,80 +62,92 @@ class PhoneVerificationController extends GetxController {
     return List.generate(6, (_) => random.nextInt(10)).join();
   }
 
-  void _showVerificationDialog() {
+  Widget createVerificationDialog() {
     verificationError.value = '';
     verificationCodeController.clear();
 
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Verify Phone Number',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+    return Dialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Verify Phone Number',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 20),
+            Text(
+              'Please check the verification code shown in the notification.',
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 20),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomTextField(
+                  controller: verificationCodeController,
+                  labelText: 'Verification Code',
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
                 ),
-              ),
-              SizedBox(height: 20),
-              Text(
-                'Please check the verification code shown in the notification.',
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 20),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CustomTextField(
-                    controller: verificationCodeController,
-                    labelText: 'Verification Code',
-                    keyboardType: TextInputType.number,
-                    maxLength: 6,
-                  ),
-                  Obx(() => verificationError.value.isNotEmpty
-                      ? Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Text(
-                            verificationError.value,
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 12,
-                            ),
+                Obx(() => verificationError.value.isNotEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          verificationError.value,
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
                           ),
-                        )
-                      : SizedBox.shrink()),
-                ],
-              ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: () => Get.back(),
-                    child: Text('Cancel'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () =>
-                        verifyCode(verificationCodeController.text),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.hijauTua,
-                    ),
-                    child:
-                        Text('Verify', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                        ),
+                      )
+                    : SizedBox.shrink()),
+              ],
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    if (Get.isDialogOpen ?? false) {
+                      Get.back();
+                    }
+                    pendingUpdates = null;
+                  },
+                  child: Text('Cancel'),
+                ),
+                Obx(() => ElevatedButton(
+                      onPressed: isVerifying.value
+                          ? null
+                          : () => verifyCode(verificationCodeController.text),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.hijauTua,
+                      ),
+                      child: isVerifying.value
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                              ))
+                          : Text('Verify',
+                              style: TextStyle(color: Colors.white)),
+                    )),
+              ],
+            ),
+          ],
         ),
       ),
-      barrierDismissible: false,
     );
   }
 
@@ -161,36 +155,27 @@ class PhoneVerificationController extends GetxController {
     try {
       if (enteredCode == verificationCode.value) {
         final User? user = _auth.currentUser;
-        if (user != null) {
-          final verificationDoc = await _firestore
-              .collection('phone_verifications')
+        if (user != null && pendingUpdates != null) {
+          isVerifying.value = true;
+
+          await FirebaseFirestore.instance
+              .collection('users')
               .doc(user.uid)
-              .get();
+              .update(pendingUpdates!);
 
-          if (verificationDoc.exists) {
-            final phoneNumber = verificationDoc.data()?['phoneNumber'];
+          pendingUpdates = null;
 
-            Get.back(closeOverlays: true);
+          Get.closeAllSnackbars();
 
-            await _firestore.collection('users').doc(user.uid).update({
-              'phoneNumber': phoneNumber,
-              'updatedAt': FieldValue.serverTimestamp(),
-            });
+          Get.until((route) => !Get.isDialogOpen!);
 
-            await _firestore
-                .collection('phone_verifications')
-                .doc(user.uid)
-                .delete();
-
-            Get.snackbar(
-              'Success',
-              'Phone number verified and updated successfully',
-              backgroundColor: Colors.green,
-              colorText: Colors.white,
-            );
-
-            notifyVerificationSuccess();
-          }
+          notifyVerificationSuccess();
+          Get.snackbar(
+            'Success',
+            'Phone number verified and profile updated successfully',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+          );
         }
       } else {
         verificationError.value =
@@ -198,7 +183,9 @@ class PhoneVerificationController extends GetxController {
       }
     } catch (e) {
       print('Error verifying code: $e');
-      verificationError.value = 'Failed to verify code. Please try again.';
+      verificationError.value = 'Failed to verify code: ${e.toString()}';
+    } finally {
+      isVerifying.value = false;
     }
   }
 
@@ -209,4 +196,5 @@ class PhoneVerificationController extends GetxController {
 
   void notifyVerificationSuccess() =>
       _onVerificationSuccessCallback.value?.call();
+
 }

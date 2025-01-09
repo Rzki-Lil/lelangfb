@@ -2,6 +2,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:lelang_fb/app/routes/app_pages.dart';
 import 'package:lelang_fb/app/widgets/header.dart';
 import 'package:lelang_fb/core/constants/color.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -77,362 +78,370 @@ class DetailItemView extends GetView<DetailItemController> {
           },
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Image Carousel Section with Indicators
-            Stack(
-              children: [
-                CarouselSlider(
-                  options: CarouselOptions(
-                    height: 300,
-                    viewportFraction: 1,
-                    enableInfiniteScroll: allImages.length > 1,
-                    autoPlay: allImages.length > 1,
-                    onPageChanged: (index, reason) {
-                      controller.currentCarouselIndex.value = index;
-                    },
-                  ),
-                  items: allImages.map((imageUrl) {
-                    return Builder(
-                      builder: (BuildContext context) {
-                        return Container(
-                          width: MediaQuery.of(context).size.width,
-                          child: CachedNetworkImage(
-                            imageUrl: imageUrl,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            placeholder: (context, url) => Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                            errorWidget: (context, url, error) =>
-                                Icon(Icons.error),
-                          ),
-                        );
-                      },
-                    );
-                  }).toList(),
-                ),
-                if (allImages.length > 1)
-                  Positioned(
-                    bottom: 15,
-                    left: 0,
-                    right: 0,
-                    child: Obx(() => Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: allImages.asMap().entries.map((entry) {
-                            return AnimatedContainer(
-                              duration: Duration(milliseconds: 300),
-                              width: controller.currentCarouselIndex.value ==
-                                      entry.key
-                                  ? 20
-                                  : 8,
-                              height: 8,
-                              margin: EdgeInsets.symmetric(horizontal: 3),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(4),
-                                color: controller.currentCarouselIndex.value ==
-                                        entry.key
-                                    ? AppColors.hijauTua
-                                    : Colors.white.withOpacity(0.5),
-                              ),
-                            );
-                          }).toList(),
-                        )),
-                  ),
-              ],
-            ),
+      body: Obx(() {
+        final item = controller.itemData.value;
+        if (item == null) return Center(child: CircularProgressIndicator());
 
-            // Item Details and Price Section
-            Container(
-              padding: EdgeInsets.all(16),
-              color: AppColors.hijauTua,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        return SingleChildScrollView(
+          child: Column(
+            children: [
+              // Image Carousel Section with Indicators
+              Stack(
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          safeGetString(item['name'], 'No Name'),
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      // Updated favorite button with white background
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Obx(() => IconButton(
-                              onPressed: () => controller.toggleFavorite(item),
-                              icon: Icon(
-                                controller.isFavorite.value
-                                    ? Icons.favorite
-                                    : Icons.favorite_border_outlined,
-                                color: controller.isFavorite.value
-                                    ? Colors.white
-                                    : Colors.white,
-                                size: 23,
-                              ),
-                            )),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    'Starting Price',
-                    style: TextStyle(color: Colors.white70),
-                  ),
-                  Text(
-                    'Rp ${safeGetString(item['starting_price'], '0')}',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  CarouselSlider(
+                    options: CarouselOptions(
+                      height: 300,
+                      viewportFraction: 1,
+                      enableInfiniteScroll: allImages.length > 1,
+                      autoPlay: allImages.length > 1,
+                      onPageChanged: (index, reason) {
+                        controller.currentCarouselIndex.value = index;
+                      },
                     ),
+                    items: allImages.map((imageUrl) {
+                      return Builder(
+                        builder: (BuildContext context) {
+                          return Container(
+                            width: MediaQuery.of(context).size.width,
+                            child: CachedNetworkImage(
+                              imageUrl: imageUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              placeholder: (context, url) => Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                              errorWidget: (context, url, error) =>
+                                  Icon(Icons.error),
+                            ),
+                          );
+                        },
+                      );
+                    }).toList(),
                   ),
+                  if (allImages.length > 1)
+                    Positioned(
+                      bottom: 15,
+                      left: 0,
+                      right: 0,
+                      child: Obx(() => Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: allImages.asMap().entries.map((entry) {
+                              return AnimatedContainer(
+                                duration: Duration(milliseconds: 300),
+                                width: controller.currentCarouselIndex.value ==
+                                        entry.key
+                                    ? 20
+                                    : 8,
+                                height: 8,
+                                margin: EdgeInsets.symmetric(horizontal: 3),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                  color:
+                                      controller.currentCarouselIndex.value ==
+                                              entry.key
+                                          ? AppColors.hijauTua
+                                          : Colors.white.withOpacity(0.5),
+                                ),
+                              );
+                            }).toList(),
+                          )),
+                    ),
                 ],
               ),
-            ),
 
-            // Details Sections
-            Container(
-              margin: EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Item Details Card
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.grey.shade200),
+              // Item Details and Price Section
+              Container(
+                padding: EdgeInsets.all(16),
+                color: AppColors.hijauTua,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            safeGetString(item['name'], 'No Name'),
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        // Updated favorite button with white background
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Obx(() => IconButton(
+                                onPressed: () =>
+                                    controller.toggleFavorite(item),
+                                icon: Icon(
+                                  controller.isFavorite.value
+                                      ? Icons.favorite
+                                      : Icons.favorite_border_outlined,
+                                  color: controller.isFavorite.value
+                                      ? Colors.white
+                                      : Colors.white,
+                                  size: 23,
+                                ),
+                              )),
+                        ),
+                      ],
                     ),
-                    child: Theme(
-                      data: Theme.of(context)
-                          .copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        initiallyExpanded: true,
-                        backgroundColor: Colors.transparent,
-                        collapsedBackgroundColor: Colors.transparent,
-                        title: Row(
+                    Text(
+                      'Starting Price',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                    Text(
+                      'Rp ${formatPrice(item['starting_price'])}',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Details Sections
+              Container(
+                margin: EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    // Item Details Card
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      child: Theme(
+                        data: Theme.of(context)
+                            .copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          initiallyExpanded: true,
+                          backgroundColor: Colors.transparent,
+                          collapsedBackgroundColor: Colors.transparent,
+                          title: Row(
+                            children: [
+                              Icon(Icons.info_outline,
+                                  color: AppColors.hijauTua, size: 20),
+                              SizedBox(width: 12),
+                              Text(
+                                'Item Details',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                            ],
+                          ),
                           children: [
-                            Icon(Icons.info_outline,
-                                color: AppColors.hijauTua, size: 20),
-                            SizedBox(width: 12),
-                            Text(
-                              'Item Details',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildDetailRow(
+                                    Icons.location_on_outlined,
+                                    'Location',
+                                    _extractProvince(
+                                        item['lokasi'] ?? 'Unknown Province'),
+                                  ),
+                                  _buildDetailRow(
+                                    Icons.calendar_today_outlined,
+                                    'Auction Date',
+                                    formattedDate,
+                                  ),
+                                  _buildDetailRow(
+                                    Icons.access_time,
+                                    'Start Time',
+                                    safeGetString(item['jamMulai'], '--:--'),
+                                  ),
+                                  _buildDetailRow(
+                                    Icons.category_outlined,
+                                    'Category',
+                                    safeGetString(item['category'], 'Others'),
+                                  ),
+                                  _buildDetailRow(
+                                    Icons.star_outline,
+                                    'Rarity',
+                                    safeGetString(item['rarity'], 'Common'),
+                                    color: _getRarityColor(safeGetString(
+                                        item['rarity'], 'Common')),
+                                  ),
+                                  Divider(color: Colors.grey.shade200),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Description',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            controller.isExpanded.toggle(),
+                                        child: Obx(() => Text(
+                                              controller.isExpanded.value
+                                                  ? 'Show Less'
+                                                  : 'Show More',
+                                              style: TextStyle(
+                                                color: AppColors.hijauTua,
+                                                fontSize: 12,
+                                              ),
+                                            )),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8),
+                                  Obx(() => Text(
+                                        safeGetString(item['description'],
+                                            'No description available'),
+                                        style: TextStyle(
+                                          color: Colors.grey[800],
+                                          height: 1.5,
+                                        ),
+                                        maxLines: controller.isExpanded.value
+                                            ? null
+                                            : 3,
+                                        overflow: controller.isExpanded.value
+                                            ? TextOverflow.visible
+                                            : TextOverflow.ellipsis,
+                                      )),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                        children: [
-                          Padding(
-                            padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            child: Column(
+                      ),
+                    ),
+
+                    SizedBox(height: 16),
+
+                    // Seller Information Card
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: Colors.grey.shade200),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                _buildDetailRow(
-                                  Icons.location_on_outlined,
-                                  'Location',
-                                  _extractProvince(
-                                      item['lokasi'] ?? 'Unknown Province'),
-                                ),
-                                _buildDetailRow(
-                                  Icons.calendar_today_outlined,
-                                  'Auction Date',
-                                  formattedDate,
-                                ),
-                                _buildDetailRow(
-                                  Icons.access_time,
-                                  'Start Time',
-                                  safeGetString(item['jamMulai'], '--:--'),
-                                ),
-                                _buildDetailRow(
-                                  Icons.category_outlined,
-                                  'Category',
-                                  safeGetString(item['category'], 'Others'),
-                                ),
-                                _buildDetailRow(
-                                  Icons.star_outline,
-                                  'Rarity',
-                                  safeGetString(item['rarity'], 'Common'),
-                                  color: _getRarityColor(
-                                      safeGetString(item['rarity'], 'Common')),
-                                ),
-                                Divider(color: Colors.grey.shade200),
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      'Description',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
+                                    Obx(() => CircleAvatar(
+                                          radius: 24,
+                                          backgroundImage: controller.userData
+                                                      .value?['photoURL'] !=
+                                                  null
+                                              ? NetworkImage(controller
+                                                  .userData.value!['photoURL'])
+                                              : null,
+                                          child: controller.userData
+                                                      .value?['photoURL'] ==
+                                                  null
+                                              ? Icon(Icons.person,
+                                                  color: Colors.grey[400])
+                                              : null,
+                                        )),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Obx(() => Text(
+                                                    controller.sellerName.value,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 16,
+                                                    ),
+                                                  )),
+                                              SizedBox(width: 4),
+                                              Obx(() => controller
+                                                      .isVerifiedSeller.value
+                                                  ? Icon(Icons.verified,
+                                                      color: AppColors.hijauTua,
+                                                      size: 16)
+                                                  : SizedBox()),
+                                            ],
+                                          ),
+                                          Obx(() => Text(
+                                                controller.sellerEmail.value,
+                                                style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 14,
+                                                ),
+                                              )),
+                                        ],
                                       ),
-                                    ),
-                                    TextButton(
-                                      onPressed: () =>
-                                          controller.isExpanded.toggle(),
-                                      child: Obx(() => Text(
-                                            controller.isExpanded.value
-                                                ? 'Show Less'
-                                                : 'Show More',
-                                            style: TextStyle(
-                                              color: AppColors.hijauTua,
-                                              fontSize: 12,
-                                            ),
-                                          )),
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 8),
-                                Obx(() => Text(
-                                      safeGetString(item['description'],
-                                          'No description available'),
-                                      style: TextStyle(
-                                        color: Colors.grey[800],
-                                        height: 1.5,
-                                      ),
-                                      maxLines: controller.isExpanded.value
-                                          ? null
-                                          : 3,
-                                      overflow: controller.isExpanded.value
-                                          ? TextOverflow.visible
-                                          : TextOverflow.ellipsis,
+                                // ...rest of the seller card code...
+                              ],
+                            ),
+                            Divider(height: 24, color: Colors.grey[200]),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Obx(() => _buildSellerStat(
+                                      'Items',
+                                      controller.totalItems.value.toString(),
+                                      Icons.inventory_2_outlined,
+                                    )),
+                                Container(
+                                  height: 24,
+                                  width: 1,
+                                  color: Colors.grey.shade200,
+                                ),
+                                Obx(() => _buildSellerStat(
+                                      'Rating',
+                                      '${(controller.userData.value?['rating'] ?? 0.0).toStringAsFixed(1)}',
+                                      Icons.star_outline,
+                                    )),
+                                Container(
+                                  height: 24,
+                                  width: 1,
+                                  color: Colors.grey.shade200,
+                                ),
+                                Obx(() => _buildSellerStat(
+                                      'Joined',
+                                      controller.sellerJoinDate.value,
+                                      Icons.calendar_today_outlined,
                                     )),
                               ],
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-
-                  SizedBox(height: 16),
-
-                  // Seller Information Card
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Obx(() => CircleAvatar(
-                                        radius: 24,
-                                        backgroundImage: controller.userData
-                                                    .value?['photoURL'] !=
-                                                null
-                                            ? NetworkImage(controller
-                                                .userData.value!['photoURL'])
-                                            : null,
-                                        child: controller.userData
-                                                    .value?['photoURL'] ==
-                                                null
-                                            ? Icon(Icons.person,
-                                                color: Colors.grey[400])
-                                            : null,
-                                      )),
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Obx(() => Text(
-                                                  controller.sellerName.value,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
-                                                  ),
-                                                )),
-                                            SizedBox(width: 4),
-                                            Obx(() => controller
-                                                    .isVerifiedSeller.value
-                                                ? Icon(Icons.verified,
-                                                    color: AppColors.hijauTua,
-                                                    size: 16)
-                                                : SizedBox()),
-                                          ],
-                                        ),
-                                        Obx(() => Text(
-                                              controller.sellerEmail.value,
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 14,
-                                              ),
-                                            )),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              // ...rest of the seller card code...
-                            ],
-                          ),
-                          Divider(height: 24, color: Colors.grey[200]),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              Obx(() => _buildSellerStat(
-                                    'Items',
-                                    controller.totalItems.value.toString(),
-                                    Icons.inventory_2_outlined,
-                                  )),
-                              Container(
-                                height: 24,
-                                width: 1,
-                                color: Colors.grey.shade200,
-                              ),
-                              Obx(() => _buildSellerStat(
-                                    'Rating',
-                                    '${(controller.userData.value?['rating'] ?? 0.0).toStringAsFixed(1)}',
-                                    Icons.star_outline,
-                                  )),
-                              Container(
-                                height: 24,
-                                width: 1,
-                                color: Colors.grey.shade200,
-                              ),
-                              Obx(() => _buildSellerStat(
-                                    'Joined',
-                                    controller.sellerJoinDate.value,
-                                    Icons.calendar_today_outlined,
-                                  )),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      }),
     );
   }
 
@@ -741,5 +750,18 @@ class DetailItemView extends GetView<DetailItemController> {
         ],
       ),
     );
+  }
+
+  String formatPrice(dynamic price) {
+    if (price == null) return '0';
+
+    // Convert to integer if it's a double
+    if (price is double) {
+      price = price.toInt();
+    }
+
+    // Format the number with thousand separators
+    return price.toString().replaceAllMapped(
+        RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.');
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:lelang_fb/app/modules/home/controllers/home_controller.dart';
+import 'package:lelang_fb/app/modules/home/views/home.dart';
+import 'package:lelang_fb/app/modules/home/views/home_view.dart';
 import 'package:lelang_fb/app/widgets/header.dart';
 import 'package:lelang_fb/core/constants/color.dart';
 import 'package:intl/intl.dart';
@@ -19,12 +21,12 @@ class SearchView extends GetView<SearchingController> {
         centerTitle: true,
         backgroundColor: Colors.white,
         leading: IconButton(
-          icon:
-              Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.hijauTua),
-          onPressed: () {
-            Get.back();
-          },
-        ),
+            icon: Icon(Icons.arrow_back_ios_new_rounded,
+                color: AppColors.hijauTua),
+            onPressed: () {
+              Get.find<HomeController>().changePage(0);
+              Get.back();
+            }),
       ),
       body: Column(
         children: [

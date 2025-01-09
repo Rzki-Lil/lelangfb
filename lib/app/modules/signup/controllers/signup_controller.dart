@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:lelang_fb/app/routes/app_pages.dart';
+import 'package:lelang_fb/core/constants/color.dart';
 
 class SignupController extends GetxController {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -70,6 +71,98 @@ class SignupController extends GetxController {
     hasSpecialChar.value = false;
   }
 
+  void showPasswordRequirementsError() {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.amber,
+                size: 50,
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Password Requirements',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildRequirementRow('Minimum 8 characters'),
+                  _buildRequirementRow('At least one uppercase letter (A-Z)'),
+                  _buildRequirementRow('At least one lowercase letter (a-z)'),
+                  _buildRequirementRow('At least one number (0-9)'),
+                  _buildRequirementRow(
+                      'At least one special character (!@#\$&*~)'),
+                ],
+              ),
+              SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Get.back(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.hijauTua,
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'I Understand',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: false,
+    );
+  }
+
+  Widget _buildRequirementRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle_outline, size: 20, color: AppColors.hijauTua),
+          SizedBox(width: 8),
+          Text(text, style: TextStyle(fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  void handleSignUpError(String error) {
+    if (error.contains('PASSWORD_DOES_NOT_MEET_REQUIREMENTS')) {
+      showPasswordRequirementsError();
+    } else {
+      // Handle other errors
+      Get.snackbar(
+        'Error',
+        'Gagal membuat akun',
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[900],
+        duration: Duration(seconds: 3),
+        margin: EdgeInsets.all(10),
+        borderRadius: 10,
+      );
+    }
+  }
+
   Future<void> signUp(String name, String email, String password) async {
     try {
       // Validasi nama
@@ -87,8 +180,7 @@ class SignupController extends GetxController {
       }
 
       if (passwordStrength.value < 0.6) {
-        Get.snackbar(
-            'Error', 'Password terlalu lemah. Silakan perkuat password Anda.');
+        showPasswordRequirementsError();
         return;
       }
 
@@ -98,19 +190,30 @@ class SignupController extends GetxController {
       );
 
       if (userCredential.user != null) {
+        // Set display name first
         await userCredential.user!.updateDisplayName(name);
+        // Reload user to ensure we have the latest data
+        await userCredential.user!.reload();
+        // Send verification email
         await userCredential.user!.sendEmailVerification();
 
+        // Pass both email and creation time to email verification
         Get.offNamed(Routes.EMAIL_VERIFICATION, arguments: {
           'email': email,
           'creationTime': userCredential.user!.metadata.creationTime!.millisecondsSinceEpoch,
+          'displayName': name, // Add display name to arguments
         });
       } else {
         Get.snackbar('Error', 'Gagal membuat akun');
       }
     } catch (e) {
-      print("Unexpected error: $e");
-      Get.snackbar('Error', 'Terjadi kesalahan yang tidak terduga');
+      handleSignUpError(e.toString());
     }
+  }
+
+  bool isPasswordValid(String password) {
+    return RegExp(
+            r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$')
+        .hasMatch(password);
   }
 }

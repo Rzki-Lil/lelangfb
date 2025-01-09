@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import '../../../widgets/header.dart';
 import '../../../../core/constants/color.dart';
 import '../controllers/notifications_controller.dart';
@@ -22,88 +23,185 @@ class NotificationsView extends GetView<NotificationsController> {
           onPressed: () => Get.back(),
         ),
       ),
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return Center(child: CircularProgressIndicator());
-        }
-
-        if (controller.notifications.isEmpty) {
-          return Center(
+      body: Column(
+        children: [
+          // Add Instructions Card
+          Container(
+            margin: EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: Offset(0, 2),
+                )
+              ],
+            ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.notifications_none, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
                 Text(
-                  'No notifications yet',
+                  'Notification Management Guide',
                   style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 16,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.hijauTua,
                   ),
+                ),
+                SizedBox(height: 16),
+                _buildInstructionRow(
+                  icon: Icons.touch_app,
+                  color: Colors.blue,
+                  text: "Tap notification to mark as read",
+                ),
+                SizedBox(height: 12),
+                _buildInstructionRow(
+                  icon: Icons.swipe,
+                  color: Colors.red,
+                  text: "Swipe left to delete notification",
                 ),
               ],
             ),
-          );
-        }
+          ),
 
-        return ListView.builder(
-          itemCount: controller.notifications.length,
-          itemBuilder: (context, index) {
-            final notification = controller.notifications[index];
-            final isRead = notification['read'] ?? false;
+          // Existing Notifications List
+          Expanded(
+            child: Obx(() {
+              if (controller.isLoading.value) {
+                return Center(child: CircularProgressIndicator());
+              }
 
-            return InkWell(
-              onTap: () => controller.markAsRead(notification['id']),
-              child: Container(
-                color: isRead ? Colors.white : Colors.grey[50],
-                child: ListTile(
-                  leading: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.hijauTua.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      _getNotificationIcon(notification['type']),
-                      color: AppColors.hijauTua,
-                    ),
-                  ),
-                  title: Text(
-                    notification['title'] ?? '',
-                    style: TextStyle(
-                      fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              if (controller.notifications.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(notification['message'] ?? ''),
-                      SizedBox(height: 4),
+                      Icon(Icons.notifications_none,
+                          size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
                       Text(
-                        _formatDateTime(notification['timestamp']),
+                        'No notifications yet',
                         style: TextStyle(
-                          fontSize: 12,
                           color: Colors.grey[600],
+                          fontSize: 16,
                         ),
                       ),
                     ],
                   ),
-                  trailing: !isRead
-                      ? Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: AppColors.hijauTua,
-                            shape: BoxShape.circle,
+                );
+              }
+
+              return ListView.builder(
+                itemCount: controller.notifications.length,
+                itemBuilder: (context, index) {
+                  final notification = controller.notifications[index];
+                  final isRead = notification['read'] ?? false;
+
+                  return Slidable(
+                    endActionPane: ActionPane(
+                      motion: const ScrollMotion(),
+                      extentRatio: 0.3,
+                      children: [
+                        SlidableAction(
+                          onPressed: (context) =>
+                              controller.deleteNotification(notification['id']),
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          icon: Icons.delete,
+                          label: 'Delete',
+                        ),
+                      ],
+                    ),
+                    child: InkWell(
+                      onTap: () => controller.markAsRead(notification['id']),
+                      child: Container(
+                        color: isRead ? Colors.white : Colors.grey[50],
+                        child: ListTile(
+                          leading: Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.hijauTua.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              _getNotificationIcon(notification['type']),
+                              color: AppColors.hijauTua,
+                            ),
                           ),
-                        )
-                      : null,
-                ),
-              ),
-            );
-          },
-        );
-      }),
+                          title: Text(
+                            notification['title'] ?? '',
+                            style: TextStyle(
+                              fontWeight:
+                                  isRead ? FontWeight.normal : FontWeight.bold,
+                            ),
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(notification['message'] ?? ''),
+                              SizedBox(height: 4),
+                              Text(
+                                _formatDateTime(notification['timestamp']),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                          trailing: !isRead
+                              ? Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.hijauTua,
+                                    shape: BoxShape.circle,
+                                  ),
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInstructionRow({
+    required IconData icon,
+    required Color color,
+    required String text,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[800],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

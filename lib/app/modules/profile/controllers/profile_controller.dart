@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'dart:async'; // Add this import
 
 import 'package:get/get.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:lelang_fb/app/modules/profile/controllers/phone_verification_controller.dart';
@@ -24,7 +24,6 @@ class ProfileController extends GetxController {
   var displayName = ''.obs;
   var userEmail = ''.obs;
   var phoneNumber = ''.obs;
-  var countryCode = 'indonesia'.obs;
 
   final name = TextEditingController();
   final email = TextEditingController();
@@ -38,14 +37,11 @@ class ProfileController extends GetxController {
   final postalCodeController = TextEditingController();
   final isDefaultAddress = false.obs;
 
-  // For location service integration
   final provinces = <Province>[].obs;
   final cities = <City>[].obs;
   final Rxn<Province> selectedProvince = Rxn<Province>();
   final Rxn<City> selectedCity = Rxn<City>();
-  final RxBool isLoadingProvinces = false.obs;
   final RxBool isLoadingCities = false.obs;
-  RxBool verify = false.obs;
 
   final RxDouble profileCompleteness = 0.0.obs;
   final Map<String, double> completenessWeights = {
@@ -55,13 +51,13 @@ class ProfileController extends GetxController {
     'address': 25.0,
   };
 
-  // Remove all the phone verification related code and add this:
   final phoneVerificationController = Get.put(PhoneVerificationController());
 
-  // Add this variable near the top with other Rx variables
   final RxString profileStatusMessage = ''.obs;
 
   final RxBool hasShownVerificationMessage = false.obs;
+
+  final RxBool isVerified = false.obs;
 
   @override
   void onInit() {
@@ -69,42 +65,17 @@ class ProfileController extends GetxController {
     fetchUserData();
     fetchAddresses();
     loadProvinces();
-    // fetchVerificationStatus();
-    listenToVerificationStatus();
-    ever(selectedProvince, (Province? province) {
-      if (province != null) {
-        loadCities(province.id);
-      }
-    });
 
-    // Add listeners to recalculate completeness when values change
-    ever(addresses, (_) => calculateProfileCompleteness());
-    name.addListener(() => calculateProfileCompleteness());
-    email.addListener(() => calculateProfileCompleteness());
-    phone.addListener(() => calculateProfileCompleteness());
-
-    // Set up listeners for real-time updates
     ever(displayName, (_) => calculateProfileCompleteness());
     ever(userEmail, (_) => calculateProfileCompleteness());
     ever(phoneNumber, (_) => calculateProfileCompleteness());
     ever(addresses, (_) => calculateProfileCompleteness());
 
-    // Initial fetch
-    fetchUserData();
-
-    // Add callback for verification success
-    phoneVerificationController.verificationSuccessCallback = () {
-      fetchUserData(); // Refresh user data after verification
-    };
-
-    // Add listener to reset message flag when verification status changes
-    ever(userData, (data) {
-      if (data != null) {
-        bool isVerified = data['verified_buyer_seller'] ?? false;
-        if (isVerified != verify) {
-          verify.value = isVerified;
-          hasShownVerificationMessage.value = false;
-        }
+    ever(selectedProvince, (Province? province) {
+      if (province != null) {
+        loadCities(province.id);
+      } else {
+        cities.clear();
       }
     });
   }
@@ -116,8 +87,7 @@ class ProfileController extends GetxController {
 
   @override
   void onClose() {
-    hasShownVerificationMessage.value =
-        false; // Reset when controller is closed
+    hasShownVerificationMessage.value = false;
     super.onClose();
   }
 
@@ -129,7 +99,6 @@ class ProfileController extends GetxController {
       final User? currentUser = _auth.currentUser;
 
       if (currentUser != null) {
-        // Fetch user data
         final docSnapshot =
             await _firestore.collection('users').doc(currentUser.uid).get();
 
@@ -140,7 +109,6 @@ class ProfileController extends GetxController {
           phoneNumber.value = userData.value?['phoneNumber'] ?? '';
           profileUrl.value = userData.value?['photoURL'] ?? '';
 
-          // Update
           name.text = displayName.value;
           email.text = userEmail.value;
           phone.text = phoneNumber.value;
@@ -157,37 +125,57 @@ class ProfileController extends GetxController {
     }
   }
 
-  // Update the updateUserProfile method
   Future<void> updateUserProfile() async {
     try {
       isLoading.value = true;
       final User? currentUser = _auth.currentUser;
 
       if (currentUser != null) {
-        // If phone number has changed, verify it first
+        // If phone number has changed, trigger verification
         if (phone.text != phoneNumber.value) {
-          await phoneVerificationController.sendVerificationCode(phone.text);
-          return;
+          // Store pending updates including the new phone number
+          phoneVerificationController.pendingUpdates = {
+            'displayName': name.text,
+            'phoneNumber': phone.text,
+            'updatedAt': FieldValue.serverTimestamp(),
+          };
+
+          // Show verification dialog and wait for result
+          final verificationResult = await phoneVerificationController
+              .sendVerificationCode(phone.text);
+          if (!verificationResult) {
+            // Reset phone number if verification fails
+            phone.text = phoneNumber.value;
+            return;
+          }
+        } else {
+          // If only name changed, update directly
+          final updates = {
+            'displayName': name.text,
+            'updatedAt': FieldValue.serverTimestamp(),
+          };
+
+          await _firestore
+              .collection('users')
+              .doc(currentUser.uid)
+              .update(updates);
+          await fetchUserData();
+          Get.snackbar(
+            'Success',
+            'Profile updated successfully',
+            backgroundColor: Colors.green,
+            colorText: Colors.white,
+          );
         }
-
-        // Update other fields
-        final updates = {
-          'displayName': name.text,
-          'updatedAt': FieldValue.serverTimestamp(),
-        };
-
-        await _firestore
-            .collection('users')
-            .doc(currentUser.uid)
-            .update(updates);
-        await fetchUserData();
-        Get.snackbar('Success', 'Profile updated successfully',
-            backgroundColor: Colors.green, colorText: Colors.white);
       }
     } catch (e) {
       print('Error updating profile: $e');
-      Get.snackbar('Error', 'Failed to update profile',
-          backgroundColor: Colors.red, colorText: Colors.white);
+      Get.snackbar(
+        'Error',
+        'Failed to update profile',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     } finally {
       isLoading.value = false;
     }
@@ -298,30 +286,6 @@ class ProfileController extends GetxController {
     }
   }
 
-  final Map<String, String> countryFlags = {
-    'us': 'united-states',
-    'id': 'indonesia',
-    'gb': 'united-kingdom',
-    'fr': 'france',
-    'jp': 'japan',
-    'dz': 'algeria',
-    // Tambahkan negara lainnya jika diperlukan
-  };
-  // Update kode negara berdasarkan input
-  void updateCountryCode(String phoneNumber) async {
-    try {
-      final parsedNumber =
-          await PhoneNumber.getRegionInfoFromPhoneNumber(phoneNumber);
-      final isoCode = parsedNumber.isoCode?.toLowerCase();
-      print("ISO Code: $isoCode");
-      countryCode.value = countryFlags[isoCode] ?? 'indonesia';
-      print("Updated Country Code: ${countryCode.value}");
-    } catch (e) {
-      countryCode.value = 'indonesia';
-      print("Error parsing phone number: $e");
-    }
-  }
-
   Future<void> fetchAddresses() async {
     try {
       final User? currentUser = _auth.currentUser;
@@ -427,28 +391,38 @@ class ProfileController extends GetxController {
 
   Future<void> loadProvinces() async {
     try {
-      isLoadingProvinces.value = true;
       final loadedProvinces = await LocationService.getProvinces();
       if (loadedProvinces.isEmpty) {
         Get.snackbar(
           'Error',
-          'Failed to load provinces. Please check your internet connection.',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+          'Failed to load provinces',
+          backgroundColor: Colors.red[100],
+          colorText: Colors.red[900],
         );
         return;
       }
       provinces.value = loadedProvinces;
+      print('Loaded ${provinces.length} provinces'); // Debug info
     } catch (e) {
       print('Error loading provinces: $e');
       Get.snackbar(
         'Error',
-        'An error occurred while loading provinces',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+        'Failed to load provinces: $e',
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[900],
       );
-    } finally {
-      isLoadingProvinces.value = false;
+    }
+  }
+
+  void onProvinceChanged(Province? province) {
+    selectedProvince.value = province;
+    selectedCity.value = null;
+    provinceController.text = province?.name ?? '';
+
+    if (province != null) {
+      loadCities(province.id);
+    } else {
+      cities.clear();
     }
   }
 
@@ -457,40 +431,32 @@ class ProfileController extends GetxController {
       isLoadingCities.value = true;
       cities.clear();
 
-      final provinceCities = LocationService.getCities(provinceId, provinces);
-      cities.value = provinceCities;
+      final loadedCities = LocationService.getCities(provinceId, provinces);
+      cities.value = loadedCities;
 
-      print('Loaded ${cities.length} cities for province $provinceId');
+      print(
+          'Loaded ${cities.length} cities for province $provinceId'); // Debug info
     } catch (e) {
       print('Error loading cities: $e');
       Get.snackbar(
         'Error',
         'Failed to load cities',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
+        backgroundColor: Colors.red[100],
+        colorText: Colors.red[900],
       );
     } finally {
       isLoadingCities.value = false;
     }
   }
 
-  void onProvinceChanged(Province? province) async {
-    selectedProvince.value = province;
-    selectedCity.value = null;
-    cities.clear();
-    provinceController.text = province?.name ?? '';
-
-    if (province != null) {
-      await loadCities(province.id);
-      //debug
-      print('Province changed to: ${province.name}');
-      print('Loaded cities: ${cities.length}');
-    }
-  }
-
   void onCityChanged(City? city) {
     selectedCity.value = city;
     cityController.text = city?.name ?? '';
+
+    // Debug info
+    if (city != null) {
+      print('Selected city: ${city.name} (${city.id})');
+    }
   }
 
   bool _validateAddress() {
@@ -572,7 +538,6 @@ class ProfileController extends GetxController {
     postalCodeController.text = address['postalCode'];
     isDefaultAddress.value = address['isDefault'] ?? false;
 
-    //edit
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(
@@ -746,77 +711,27 @@ class ProfileController extends GetxController {
     }
 
     profileCompleteness.value = completeness;
+    updateVerificationStatus();
+  }
 
-    profileStatusMessage.value = completeness == 100
+  void updateVerificationStatus() {
+    bool complete = profileCompleteness.value == 100;
+    isVerified.value = complete;
+
+    profileStatusMessage.value = complete
         ? "Your profile is complete!"
         : "Complete your profile to make it easier\nfor you to use application";
-
-    await updateVerificationStatus(completeness);
   }
 
-  Future<void> updateVerificationStatus(double completeness) async {
-    try {
-      final User? currentUser = _auth.currentUser;
-      if (currentUser != null) {
-        final userRef = _firestore.collection('users').doc(currentUser.uid);
-        final userDoc = await userRef.get();
-        final bool currentVerificationStatus =
-            userDoc.data()?['verified_buyer_seller'] ?? false;
-
-        // Only update and show message if status is actually changing
-        if (completeness == 100) {
-          if (!currentVerificationStatus) {
-            await userRef.set({
-              'verified_buyer_seller': true,
-              'updatedAt': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true));
-
-            if (!hasShownVerificationMessage.value) {
-              Get.snackbar(
-                'Verification Status Updated',
-                'You are now a verified buyer/seller!',
-                backgroundColor: Colors.green,
-                colorText: Colors.white,
-                duration: Duration(seconds: 3),
-              );
-              hasShownVerificationMessage.value = true;
-            }
-          }
-        } else {
-          if (currentVerificationStatus) {
-            await userRef.set({
-              'verified_buyer_seller': false,
-              'updatedAt': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true));
-
-            if (!hasShownVerificationMessage.value) {
-              Get.snackbar(
-                'Verification Status Updated',
-                'You need to complete your profile to access all features',
-                backgroundColor: Colors.amber,
-                colorText: Colors.black87,
-                duration: Duration(seconds: 3),
-              );
-              hasShownVerificationMessage.value = true;
-            }
-          }
-        }
-      }
-    } catch (e) {
-      print('Error updating verification status: $e');
+  void onPhoneNumberChanged(String value) {
+    String digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+    if (digits.length > 12) {
+      digits = digits.substring(0, 12);
     }
-  }
 
-  void listenToVerificationStatus() {
-    final User? currentUser = _auth.currentUser;
-    if (currentUser != null) {
-      final userRef = _firestore.collection('users').doc(currentUser.uid);
-
-      userRef.snapshots().listen((snapshot) {
-        if (snapshot.exists) {
-          verify.value = snapshot.data()?['verified_buyer_seller'] == true;
-        }
-      });
-    }
+    phone.text = digits;
+    phone.selection = TextSelection.fromPosition(
+      TextPosition(offset: digits.length),
+    );
   }
 }

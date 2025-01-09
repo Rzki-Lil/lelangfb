@@ -45,9 +45,9 @@ app.post("/create-payment", async (req, res) => {
       },
       enabled_payments: ["credit_card", "gopay", "shopeepay", "bank_transfer"],
       callbacks: {
-        finish: "lelangfb://payment-complete",
-        error: "lelangfb://payment-error",
-        pending: "lelangfb://payment-pending",
+        finish: "lelangid://payment-complete",
+        error: "lelangid://payment-error",
+        pending: "lelangid://payment-pending",
       },
     };
 

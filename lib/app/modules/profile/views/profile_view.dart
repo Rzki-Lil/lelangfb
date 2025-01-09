@@ -94,27 +94,37 @@ class ProfileView extends GetView<ProfileController> {
                           ),
                         ),
                         SizedBox(height: 4),
-                        Obx(
-                          () => Container(
-                            padding: EdgeInsets.symmetric(
-                              vertical: 4,
-                              horizontal: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: controller.verify.value
-                                  ? AppColors.hijauTua
-                                  : AppColors.red,
-                              borderRadius: BorderRadius.circular(7),
-                            ),
-                            child: Text(
-                              controller.verify.value
-                                  ? 'Verified Seller'
-                                  : 'Unverified',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            vertical: 4,
+                            horizontal: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: controller.isVerified.value
+                                ? AppColors.hijauTua
+                                : AppColors.red,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              controller.isVerified.value
+                                  ? Icon(Icons.verified,
+                                      size: 16, color: Colors.white)
+                                  : Icon(Icons.error_outline,
+                                      size: 16, color: Colors.white),
+                              SizedBox(width: 4),
+                              Text(
+                                controller.isVerified.value
+                                    ? 'Verified'
+                                    : 'Unverified',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ),
                       ],

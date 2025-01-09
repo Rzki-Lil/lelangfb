@@ -7,7 +7,6 @@ import 'package:lelang_fb/app/modules/list_favorite/views/list_favorite_view.dar
 import 'package:lelang_fb/app/modules/search/views/search_view.dart';
 import 'package:lelang_fb/app/services/auction_service.dart';
 import 'package:lelang_fb/core/assets/assets.gen.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:lelang_fb/core/constants/color.dart';
@@ -35,6 +34,9 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       <Map<String, dynamic>>[].obs;
   RxList<String> carouselImages = <String>[].obs;
   final userBalance = 0.0.obs;
+  final transactions = <Map<String, dynamic>>[].obs;
+  StreamSubscription<QuerySnapshot>? _transactionSubscription;
+  StreamSubscription<DocumentSnapshot>? _balanceSubscription;
 
   @override
   void onReady() {
@@ -56,42 +58,6 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
   ];
 
   void changePage(int index) async {
-    if (index == 2) {
-      try {
-        final user = _auth.currentUser;
-        if (user == null) {
-          Get.toNamed('/login');
-          return;
-        }
-
-        final docSnapshot =
-            await _firestore.collection('users').doc(user.uid).get();
-
-        if (!docSnapshot.exists ||
-            !(docSnapshot.data()?['verified_buyer_seller'] ?? false)) {
-          Get.snackbar(
-            'Access Denied',
-            'Only verified users can add items. Please complete your profile to get verified.',
-            backgroundColor: Colors.amber,
-            colorText: Colors.black87,
-            duration: Duration(seconds: 3),
-            icon: Icon(Icons.warning_amber_rounded, color: Colors.black87),
-          );
-          Get.toNamed('/profile-setting');
-          return;
-        }
-      } catch (e) {
-        print('Error checking verification status: $e');
-        Get.snackbar(
-          'Error',
-          'Unable to verify user status',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        return;
-      }
-    }
-
     selectedPage.value = index;
 
     if (index == 1) {
@@ -106,9 +72,6 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
     super.onInit();
     bannerPromo.add(Assets.images.banner2.path);
 
-    initializeDateFormatting('id_ID', null).then((_) {
-      print('Date formatting initialized');
-    });
     print('HomeController onInit called');
     Get.lazyPut(() => AddItemController());
     setupItemsListener();
@@ -130,6 +93,8 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
     });
 
     fetchUserBalance();
+    setupBalanceStream();
+    setupTransactionStream();
   }
 
   void setupItemsListener() {
@@ -223,6 +188,8 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
   void dispose() {
     _timer?.cancel();
     _statusCheckTimer?.cancel();
+    _transactionSubscription?.cancel();
+    _balanceSubscription?.cancel();
 
     super.dispose();
   }
@@ -337,7 +304,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
 
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.1.3:3000/create-payment'),
+        Uri.parse('http://192.168.1.7:3000/create-payment'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'orderId': orderId,
@@ -377,7 +344,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
     Timer.periodic(Duration(seconds: 5), (timer) async {
       try {
         final response = await http.get(
-          Uri.parse('http://192.168.1.3:3000/status/$orderId'),
+          Uri.parse('http://192.168.1.7:3000/status/$orderId'),
         );
 
         if (response.statusCode == 200) {
@@ -462,26 +429,31 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
         return;
       }
 
-      final batch = _firestore.batch();
-      final user = _auth.currentUser;
-      final recipientId = recipientDoc.docs.first.id;
+      // Use AuctionService to handle transaction
+      await AuctionService.handleTransactionAndNotification(
+        type: 'transfer',
+        amount: -amount, // Negative for sender
+        userId: _auth.currentUser!.uid,
+        itemId: '',
+        description: 'Transfer to $recipientEmail',
+        additionalData: {
+          'recipientEmail': recipientEmail,
+          'recipientId': recipientDoc.docs.first.id,
+        },
+      );
 
-      batch.update(_firestore.collection('users').doc(user?.uid),
-          {'balance': FieldValue.increment(-amount)});
-
-      batch.update(_firestore.collection('users').doc(recipientId),
-          {'balance': FieldValue.increment(amount)});
-
-      await batch.commit();
-
-      await _firestore.collection('transactions').add({
-        'userId': user?.uid,
-        'amount': amount,
-        'type': 'transfer',
-        'recipientEmail': recipientEmail,
-        'timestamp': FieldValue.serverTimestamp(),
-        'status': 'completed'
-      });
+      // Create recipient's transaction record
+      await AuctionService.handleTransactionAndNotification(
+        type: 'transfer_received',
+        amount: amount, // Positive for recipient
+        userId: recipientDoc.docs.first.id,
+        itemId: '',
+        description: 'Transfer from ${_auth.currentUser!.email}',
+        additionalData: {
+          'senderEmail': _auth.currentUser!.email,
+          'senderId': _auth.currentUser!.uid,
+        },
+      );
 
       await fetchUserBalance();
       Get.snackbar('Success', 'Transfer completed');
@@ -491,115 +463,7 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
     }
   }
 
-  Future<void> showTransactionHistory() async {
-    try {
-      final user = _auth.currentUser;
-      if (user == null) {
-        Get.snackbar('Error', 'Please login first');
-        return;
-      }
-
-      final transactions = await AuctionService.getTransactionHistory(user.uid);
-      _showTransactionHistoryDialog(transactions);
-    } catch (e) {
-      print('Error showing transaction history: $e');
-      Get.snackbar('Error', 'Failed to load transaction history');
-    }
-  }
-
-  void _showTransactionHistoryDialog(List<Map<String, dynamic>> transactions) {
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Container(
-          width: Get.width * 0.95,
-          height: Get.height * 0.7,
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Transaction History',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close),
-                    onPressed: () => Get.back(),
-                  ),
-                ],
-              ),
-              Divider(),
-              Expanded(
-                child: transactions.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.history, size: 48, color: Colors.grey),
-                            SizedBox(height: 16),
-                            Text('No transactions found'),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: transactions.length,
-                        itemBuilder: (context, index) {
-                          final transaction = transactions[index];
-                          final amount = transaction['amount'] ?? 0;
-                          final type = transaction['type'] ?? 'Unknown';
-                          final timestamp =
-                              transaction['timestamp'] as Timestamp;
-                          final date = timestamp.toDate();
-
-                          return ListTile(
-                            leading: Container(
-                              padding: EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: AppColors.hijauTua.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                type == 'topup' ? Icons.add_circle : Icons.send,
-                                color: AppColors.hijauTua,
-                              ),
-                            ),
-                            title: Text(
-                              type.toUpperCase(),
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Text(
-                              '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}',
-                            ),
-                            trailing: Text(
-                              'Rp ${amount.toStringAsFixed(0)}',
-                              style: TextStyle(
-                                color: AppColors.hijauTua,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      barrierDismissible: true,
-    );
-  }
-
-  Future<void> withdraw(double amount, String bankCode, String accountNumber,
-      String accountName) async {
+  Future<void> withdraw(double amount, String bankCode, String accountNumber, String accountName) async {
     try {
       if (amount > userBalance.value) {
         Get.snackbar('Error', 'Insufficient balance');
@@ -609,106 +473,393 @@ class HomeController extends GetxController with SingleGetTickerProviderMixin {
       Get.dialog(Center(child: CircularProgressIndicator()),
           barrierDismissible: false);
 
-      final response = await http.post(
-        Uri.parse('http://192.168.1.3:3000/withdraw'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'amount': amount,
+      final user = _auth.currentUser;
+      if (user == null) return;
+
+      // Create one-time listener for balance update
+      StreamSubscription<DocumentSnapshot>? withdrawalListener;
+      withdrawalListener = _firestore
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .listen((snapshot) {
+        if (snapshot.exists) {
+          final newBalance = (snapshot.data()?['balance'] ?? 0.0).toDouble();
+          userBalance.value = newBalance;
+          withdrawalListener?.cancel(); // Cancel after first update
+        }
+      });
+
+      // Update balance immediately in Firestore
+      await _firestore.runTransaction((transaction) async {
+        final userDoc = await transaction.get(_firestore.collection('users').doc(user.uid));
+        final currentBalance = userDoc.data()?['balance'] ?? 0.0;
+        
+        if (currentBalance < amount) {
+          throw 'Insufficient balance';
+        }
+
+        // Deduct from user's balance
+        transaction.update(_firestore.collection('users').doc(user.uid), {
+          'balance': FieldValue.increment(-amount)
+        });
+
+        // Create withdrawal transaction
+        final transactionRef = _firestore.collection('transactions').doc();
+        transaction.set(transactionRef, {
+          'userId': user.uid,
+          'amount': -amount,
+          'type': 'withdraw',
+          'timestamp': FieldValue.serverTimestamp(),
+          'status': 'completed',
           'bankCode': bankCode,
           'bankAccount': accountNumber,
-          'accountName': accountName
-        }),
-      );
+          'accountName': accountName,
+          'description': 'Withdrawal to $bankCode'
+        });
+      });
 
-      Get.back();
+      Get.back(); // Close loading dialog
 
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        final transactionId = responseData['transaction_id']?.toString() ??
-            'WD-${DateTime.now().millisecondsSinceEpoch}';
-
-        await AuctionService.processWithdrawal(
-          _auth.currentUser!.uid,
-          amount,
-          bankCode,
-          accountNumber,
-          accountName,
-          transactionId,
-        );
-
-        Get.dialog(
-          Dialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green, size: 60),
-                  SizedBox(height: 20),
-                  Text('Withdrawal Initiated',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 10),
-                  Text(
-                    'Your withdrawal request is being processed.\nFunds will be transferred to:',
-                    textAlign: TextAlign.center,
+      await Get.dialog(
+        Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.check_circle, color: Colors.green, size: 60),
+                SizedBox(height: 20),
+                Text('Withdrawal Success',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                SizedBox(height: 10),
+                Text(
+                  'Amount: Rp ${amount.toStringAsFixed(0)}\nBank: ${bankCode.toUpperCase()}\nAccount: $accountNumber',
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 20),
+                Obx(() => Text(
+                  'Current Balance: Rp ${userBalance.value.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppColors.hijauTua,
+                    fontWeight: FontWeight.bold,
                   ),
-                  SizedBox(height: 20),
-                  Container(
-                    padding: EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      children: [
-                        Text('Virtual Account Number',
-                            style: TextStyle(color: Colors.grey[600])),
-                        SizedBox(height: 5),
-                        Text(accountNumber,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                            )),
-                        Text(bankCode.toUpperCase(),
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                      ],
-                    ),
+                )),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Get.back();
+                    withdrawalListener?.cancel(); // Clean up listener when closing dialog
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.hijauTua,
+                    minimumSize: Size(double.infinity, 45),
                   ),
-                  SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () => Get.back(),
-                    child: Text('OK'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.hijauTua,
-                      minimumSize: Size(double.infinity, 45),
-                    ),
-                  ),
-                ],
-              ),
+                  child: Text('OK', style: TextStyle(color: Colors.white)),
+                ),
+              ],
             ),
           ),
-        );
-      } else {
-        throw Exception('Failed to process withdrawal');
-      }
+        ),
+        barrierDismissible: false,
+      );
+
     } catch (e) {
       print('Error processing withdrawal: $e');
-      Get.snackbar('Error', 'Failed to process withdrawal: $e',
-          backgroundColor: Colors.red.withOpacity(0.3));
+      Get.back(); // Close loading dialog
+      Get.snackbar('Error', 'Failed to process withdrawal: $e');
     }
   }
 
-  void fetchLiveAuctions() {
-    FirebaseFirestore.instance
-        .collection('items')
-        .where('status', isEqualTo: 'ongoing')
+  void showTransactionHistory() {
+    // Cancel existing subscription if any
+    _transactionSubscription?.cancel();
+
+    // Setup new subscription
+    _transactionSubscription = _firestore
+        .collection('transactions')
+        .where('userId', isEqualTo: _auth.currentUser?.uid)
+        .orderBy('timestamp', descending: true)
         .snapshots()
         .listen((snapshot) {
-      liveAuctions.value = snapshot.docs;
+      transactions.value = snapshot.docs.map((doc) {
+        return {
+          ...doc.data(),
+          'id': doc.id,
+        };
+      }).toList();
+    }, onError: (error) {
+      print('Error in transaction stream: $error');
     });
+
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: Container(
+          width: Get.width * 0.95,
+          height: Get.height * 0.7,
+          padding: EdgeInsets.all(20),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Transaction History',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () {
+                      _transactionSubscription?.cancel();
+                      Get.back();
+                    },
+                  ),
+                ],
+              ),
+              Divider(),
+              Expanded(
+                child: Obx(() {
+                  if (transactions.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.history, size: 48, color: Colors.grey),
+                          SizedBox(height: 16),
+                          Text('No transactions found'),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    itemCount: transactions.length,
+                    itemBuilder: (context, index) {
+                      return _buildTransactionItem(transactions[index], context);
+                    },
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: true,
+    );
+  }
+
+  Widget _buildTransactionItem(Map<String, dynamic> data, BuildContext context) {
+    final amount = data['amount'] ?? 0.0;
+    final type = data['type'] ?? 'Unknown';
+    final timestamp = data['timestamp'] as Timestamp;
+    final date = timestamp.toDate();
+
+    IconData icon;
+    Color color;
+    switch (type) {
+      case 'topup':
+        icon = Icons.add_circle;
+        color = Colors.green;
+        break;
+      case 'withdraw':
+        icon = Icons.money_off;
+        color = Colors.red;
+        break;
+      case 'transfer':
+        icon = Icons.send;
+        color = Colors.blue;
+        break;
+      case 'transfer_received':
+        icon = Icons.call_received;
+        color = Colors.green;
+        break;
+      default:
+        icon = Icons.swap_horiz;
+        color = Colors.grey;
+    }
+
+    return ListTile(
+      leading: Container(
+        padding: EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color),
+      ),
+      title: Text(
+        _getTransactionTitle(type),
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Text(
+        '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}',
+      ),
+      trailing: Text(
+        'Rp ${amount.abs().toStringAsFixed(0)}',
+        style: TextStyle(
+          color: amount >= 0 ? Colors.green : Colors.red,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      onTap: () => _showTransactionDetails(data),
+    );
+  }
+
+  String _getTransactionTitle(String type) {
+    switch (type) {
+      case 'topup':
+        return 'Top Up';
+      case 'withdraw':
+        return 'Withdrawal';
+      case 'transfer':
+        return 'Transfer Sent';
+      case 'transfer_received':
+        return 'Transfer Received';
+      default:
+        return type.toUpperCase();
+    }
+  }
+
+  void setupBalanceStream() {
+    final user = _auth.currentUser;
+    if (user != null) {
+      _balanceSubscription = _firestore
+          .collection('users')
+          .doc(user.uid)
+          .snapshots()
+          .listen((snapshot) {
+        if (snapshot.exists) {
+          userBalance.value = (snapshot.data()?['balance'] ?? 0.0).toDouble();
+        }
+      });
+    }
+  }
+
+  void setupTransactionStream() {
+    final user = _auth.currentUser;
+    if (user != null) {
+      _transactionSubscription = _firestore
+          .collection('transactions')
+          .where('userId', isEqualTo: user.uid)
+          .orderBy('timestamp', descending: true)
+          .snapshots()
+          .listen((snapshot) {
+        transactions.value = snapshot.docs
+            .map((doc) => {
+                  ...doc.data(),
+                  'id': doc.id,
+                })
+            .toList();
+      });
+    }
+  }
+
+  void _showTransactionDetails(Map<String, dynamic> data) {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Padding(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Transaction Details',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () => Get.back(),
+                  ),
+                ],
+              ),
+              Divider(),
+              _buildDetailRow('Type', _getTransactionTitle(data['type'] ?? 'Unknown')),
+              _buildDetailRow('Amount', 'Rp ${(data['amount'] ?? 0.0).abs().toStringAsFixed(0)}'),
+              _buildDetailRow('Status', (data['status'] ?? 'completed').toUpperCase()),
+              if (data['timestamp'] != null)
+                _buildDetailRow(
+                  'Date & Time',
+                  _formatDateTime((data['timestamp'] as Timestamp).toDate()),
+                ),
+              if (data['type'] == 'transfer') ...[
+                if (data['recipientEmail'] != null)
+                  _buildDetailRow('To', data['recipientEmail']),
+                if (data['senderEmail'] != null)
+                  _buildDetailRow('From', data['senderEmail']),
+              ],
+              if (data['type'] == 'withdraw') ...[
+                if (data['bankCode'] != null)
+                  _buildDetailRow('Bank', data['bankCode'].toString().toUpperCase()),
+                if (data['accountName'] != null)
+                  _buildDetailRow('Account Name', data['accountName']),
+                if (data['bankAccount'] != null)
+                  _buildDetailRow('Account Number', data['bankAccount']),
+              ],
+              SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Get.back(),
+                  child: Text('Close'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(DateTime date) {
+    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute}';
+  }
+
+  @override
+  void onClose() {
+    _timer?.cancel();
+    _statusCheckTimer?.cancel();
+    _transactionSubscription?.cancel();
+    _balanceSubscription?.cancel();
+    super.onClose();
   }
 }

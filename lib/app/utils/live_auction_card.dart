@@ -14,6 +14,7 @@ class LiveAuctionCard extends StatefulWidget {
   final int bidCount;
   final VoidCallback onTap;
   final bool showLiveBadge;
+  final Function(String)? onStatusChange; // Add this
 
   const LiveAuctionCard({
     Key? key,
@@ -27,6 +28,7 @@ class LiveAuctionCard extends StatefulWidget {
     required this.bidCount,
     required this.onTap,
     this.showLiveBadge = true,
+    this.onStatusChange,
   }) : super(key: key);
 
   @override
@@ -55,6 +57,14 @@ class _LiveAuctionCardState extends State<LiveAuctionCard> {
         setState(() {
           _timeRemaining = _calculateTimeRemaining();
         });
+
+        // Only call onStatusChange when needed
+        final now = DateTime.now();
+        if (now.isAfter(widget.endTime) && _timeRemaining == 'Ended') {
+          widget.onStatusChange?.call(widget.id);
+          _timer?.cancel();
+          // Remove the dialog trigger
+        }
       }
     });
   }
@@ -65,7 +75,7 @@ class _LiveAuctionCardState extends State<LiveAuctionCard> {
 
     if (difference.isNegative) {
       _timer?.cancel();
-      return 'Ended';
+      return 'Ended'; 
     }
 
     final minutes = difference.inMinutes;

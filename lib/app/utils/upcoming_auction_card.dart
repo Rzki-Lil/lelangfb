@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/color.dart';
+import 'dart:async';
 
-class UpcomingAuctionCard extends StatelessWidget {
+class UpcomingAuctionCard extends StatefulWidget {
   final String imageUrl;
   final String name;
   final double price;
@@ -11,7 +12,9 @@ class UpcomingAuctionCard extends StatelessWidget {
   final DateTime date;
   final String startTime;
   final VoidCallback onTap;
-  final String category; // Add this line
+  final String category;
+  final String id;
+  final Function(String)? onStatusChange;
 
   const UpcomingAuctionCard({
     Key? key,
@@ -23,8 +26,70 @@ class UpcomingAuctionCard extends StatelessWidget {
     required this.date,
     required this.startTime,
     required this.onTap,
-    this.category = 'Others', // Add this line with default value
+    this.category = 'Others',
+    required this.id,
+    this.onStatusChange,
   }) : super(key: key);
+
+  @override
+  State<UpcomingAuctionCard> createState() => _UpcomingAuctionCardState();
+}
+
+class _UpcomingAuctionCardState extends State<UpcomingAuctionCard> {
+  StreamSubscription? _auctionStatusSubscription;
+  StreamController<bool>? _statusController;
+  bool _hasStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _statusController = StreamController<bool>();
+    _setupAuctionStatusStream();
+  }
+
+  @override
+  void dispose() {
+    _auctionStatusSubscription?.cancel();
+    _statusController?.close();
+    super.dispose();
+  }
+
+  void _setupAuctionStatusStream() {
+    _auctionStatusSubscription = Stream.periodic(
+      const Duration(seconds: 1),
+      (_) => _checkAuctionStatus(),
+    ).listen((hasStarted) {
+      if (mounted && hasStarted) {
+        widget.onStatusChange?.call(widget.id);
+        _auctionStatusSubscription?.cancel();
+      }
+    });
+  }
+
+  bool _checkAuctionStatus() {
+    final now = DateTime.now();
+    final startTime = _getStartDateTime();
+    final hasStarted = now.isAfter(startTime);
+
+    if (hasStarted != _hasStarted) {
+      setState(() {
+        _hasStarted = hasStarted;
+      });
+    }
+
+    return hasStarted;
+  }
+
+  DateTime _getStartDateTime() {
+    final parts = widget.startTime.split(':');
+    return DateTime(
+      widget.date.year,
+      widget.date.month,
+      widget.date.day,
+      int.parse(parts[0]),
+      int.parse(parts[1]),
+    );
+  }
 
   String _formatDate(DateTime date) {
     try {
@@ -54,7 +119,7 @@ class UpcomingAuctionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -79,12 +144,11 @@ class UpcomingAuctionCard extends StatelessWidget {
                     borderRadius:
                         BorderRadius.vertical(top: Radius.circular(12)),
                     image: DecorationImage(
-                      image: NetworkImage(imageUrl),
+                      image: NetworkImage(widget.imageUrl),
                       fit: BoxFit.cover,
                     ),
                   ),
                 ),
-                // Updated start time badge to match category style
                 Positioned(
                   bottom: 8,
                   left: 8,
@@ -100,7 +164,7 @@ class UpcomingAuctionCard extends StatelessWidget {
                         Icon(Icons.access_time, size: 10, color: Colors.black),
                         SizedBox(width: 4),
                         Text(
-                          startTime,
+                          _hasStarted ? 'Started' : widget.startTime,
                           style: TextStyle(
                             color: Colors.black,
                             fontSize: 8,
@@ -115,7 +179,8 @@ class UpcomingAuctionCard extends StatelessWidget {
                 Positioned(
                   bottom: 8,
                   right: 8,
-                  child: _buildBadge(category, Colors.white, isCategory: true),
+                  child: _buildBadge(widget.category, Colors.white,
+                      isCategory: true),
                 ),
               ],
             ),
@@ -132,14 +197,15 @@ class UpcomingAuctionCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildBadge('UPCOMING', AppColors.hijauTua),
-                        _buildBadge(rarity, _getRarityColor(rarity)),
+                        _buildBadge(
+                            widget.rarity, _getRarityColor(widget.rarity)),
                       ],
                     ),
                     SizedBox(height: 4),
 
                     // Name
                     Text(
-                      name,
+                      widget.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -151,7 +217,7 @@ class UpcomingAuctionCard extends StatelessWidget {
 
                     // Price
                     Text(
-                      _formatPrice(price),
+                      _formatPrice(widget.price),
                       style: TextStyle(
                         color: AppColors.hijauTua,
                         fontWeight: FontWeight.bold,
@@ -173,7 +239,7 @@ class UpcomingAuctionCard extends StatelessWidget {
                               SizedBox(width: 2),
                               Expanded(
                                 child: Text(
-                                  _extractCityOnly(location),
+                                  _extractCityOnly(widget.location),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
@@ -189,7 +255,7 @@ class UpcomingAuctionCard extends StatelessWidget {
                         Expanded(
                           flex: 1,
                           child: Text(
-                            _formatDate(date),
+                            _formatDate(widget.date),
                             textAlign: TextAlign.end,
                             style: TextStyle(
                               color: Colors.grey[600],

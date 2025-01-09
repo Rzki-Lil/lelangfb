@@ -66,6 +66,20 @@ class AuctionService {
     }
   }
 
+  static Future<bool> isUserHighestBidder(String itemId, String userId) async {
+    final itemRef = _firestore.collection('items').doc(itemId);
+    final bidsSnapshot = await itemRef
+        .collection('bids')
+        .orderBy('amount', descending: true)
+        .limit(1)
+        .get();
+
+    if (bidsSnapshot.docs.isNotEmpty) {
+      return bidsSnapshot.docs.first.data()['bidder_id'] == userId;
+    }
+    return false;
+  }
+
   static Future<void> placeBid({
     required String itemId,
     required String userId,
@@ -75,6 +89,10 @@ class AuctionService {
   }) async {
     try {
       await _firestore.runTransaction((transaction) async {
+        // Get latest user data first
+        final userDoc = await transaction.get(_firestore.collection('users').doc(userId));
+        final userData = userDoc.data();
+        
         final itemRef = _firestore.collection('items').doc(itemId);
         final itemDoc = await transaction.get(itemRef);
 
@@ -86,10 +104,14 @@ class AuctionService {
           throw 'Bid must be higher than current price';
         }
 
+        final isHighestBidder = await isUserHighestBidder(itemId, userId);
+        if (isHighestBidder) {
+          throw 'You are already the highest bidder. Wait for someone else to outbid you.';
+        }
+
         final bidCountSnapshot = await itemRef.collection('bids').count().get();
         final newBidCount = bidCountSnapshot.count! + 1;
 
-        // Update item with new price
         transaction.update(itemRef, {
           'current_price': amount,
           'bid_count': newBidCount,
@@ -97,14 +119,13 @@ class AuctionService {
           'updated_at': FieldValue.serverTimestamp(),
         });
 
-        // Add new bid
         transaction.set(
           itemRef.collection('bids').doc(),
           {
             'amount': amount,
             'bidder_id': userId,
-            'bidder_name': userName,
-            'bidder_photo': userPhoto,
+            'bidder_name': userData?['displayName'] ?? 'Anonymous',
+            'bidder_photo': userData?['photoURL'] ?? '', 
             'timestamp': FieldValue.serverTimestamp(),
           },
         );
@@ -116,8 +137,7 @@ class AuctionService {
             .get();
 
         if (previousHighestBid.docs.isNotEmpty) {
-          final previousBidderId =
-              previousHighestBid.docs.first.data()['bidder_id'];
+          final previousBidderId = previousHighestBid.docs.first.data()['bidder_id'];
           if (previousBidderId != userId) {
             await _notifyOutbid(
               userId: previousBidderId,
@@ -138,22 +158,26 @@ class AuctionService {
       if (!doc.exists) return;
 
       final data = doc.data() as Map<String, dynamic>;
+      if (data['status'] == 'closed') return;
+
       final now = DateTime.now();
-
-      if (data['status'] == 'closed') {
-        return;
-      }
-
       final itemDate = (data['tanggal'] as Timestamp).toDate();
       final startTime = data['jamMulai'] as String;
       final endTime = data['jamSelesai'] as String;
 
-      final startDateTime = _getDateTime(itemDate, startTime);
-      final endDateTime = _getDateTime(itemDate, endTime);
+      final startDateTime = _getFormattedDateTime(itemDate, startTime);
+      final endDateTime = _getFormattedDateTime(itemDate, endTime);
+
+      print('Checking item ${itemRef.id}:');
+      print('Current time: $now');
+      print('Start time: $startDateTime');
+      print('End time: $endDateTime');
 
       if (now.isAfter(endDateTime)) {
+        print('Auction ended, updating status to closed');
         await handleAuctionEnd(itemRef, data);
       } else if (now.isAfter(startDateTime) && data['status'] == 'upcoming') {
+        print('Auction starting, updating status to live');
         await _updateToLive(itemRef, data);
       }
     } catch (e) {
@@ -161,31 +185,68 @@ class AuctionService {
     }
   }
 
-  static DateTime _getDateTime(DateTime date, String timeStr) {
-    final parts = timeStr.split(':');
-    return DateTime(
-      date.year,
-      date.month,
-      date.day,
-      int.parse(parts[0]),
-      int.parse(parts[1]),
-    );
+  static DateTime _getFormattedDateTime(DateTime date, String timeStr) {
+    try {
+      final parts = timeStr.split(':');
+      if (parts.length != 2) throw FormatException('Invalid time format');
+
+      final hours = int.parse(parts[0]);
+      final minutes = int.parse(parts[1]);
+
+      return DateTime(
+        date.year,
+        date.month,
+        date.day,
+        hours,
+        minutes,
+      );
+    } catch (e) {
+      print('Error parsing time: $e');
+      // Return a default time if parsing fails
+      return date;
+    }
   }
 
   static Future<void> _updateToLive(
       DocumentReference itemRef, Map<String, dynamic> data) async {
-    await itemRef.update({
-      'status': 'live',
-      'updated_at': FieldValue.serverTimestamp(),
-    });
+    try {
+      print('Updating item ${itemRef.id} to live status');
 
-    await _sendNotification(
-      userId: data['seller_id'],
-      title: 'Auction Started',
-      message: 'Your auction for ${data['name']} has started!',
-      type: 'auction_start',
-      itemId: itemRef.id,
-    );
+      await _firestore.runTransaction((transaction) async {
+        final doc = await transaction.get(itemRef);
+        final currentData = doc.data() as Map<String, dynamic>?;
+
+        if (!doc.exists || currentData?['status'] != 'upcoming') {
+          return;
+        }
+
+        final now = DateTime.now();
+        final itemDate = (data['tanggal'] as Timestamp).toDate();
+        final startTime = data['jamMulai'] as String;
+        final startDateTime = _getFormattedDateTime(itemDate, startTime);
+
+        if (!now.isAfter(startDateTime)) {
+          return;
+        }
+
+        await itemRef.update({
+          'status': 'live',
+          'updated_at': FieldValue.serverTimestamp(),
+        });
+
+        await _sendNotification(
+          userId: data['seller_id'],
+          title: 'Auction Started',
+          message: 'Your auction for ${data['name']} has started!',
+          type: 'auction_start',
+          itemId: itemRef.id,
+        );
+      });
+
+      print('Successfully updated item ${itemRef.id} to live status');
+    } catch (e) {
+      print('Error in _updateToLive: $e');
+    }
   }
 
   static Future<void> _notifyOutbid({
@@ -211,18 +272,27 @@ class AuctionService {
     required String itemId,
   }) async {
     try {
-      await _firestore
+      final notificationId = '$userId-$itemId-$type-${DateTime.now().day}';
+
+      final notificationsRef = _firestore
           .collection('users')
           .doc(userId)
-          .collection('notifications')
-          .add({
-        'title': title,
-        'message': message,
-        'type': type,
-        'timestamp': FieldValue.serverTimestamp(),
-        'read': false,
-        'itemId': itemId,
-      });
+          .collection('notifications');
+
+      final existingNotification =
+          await notificationsRef.doc(notificationId).get();
+
+      if (!existingNotification.exists) {
+        await notificationsRef.doc(notificationId).set({
+          'title': title,
+          'message': message,
+          'type': type,
+          'timestamp': FieldValue.serverTimestamp(),
+          'read': false,
+          'itemId': itemId,
+          'notificationId': notificationId,
+        });
+      }
     } catch (e) {
       print('Error sending notification: $e');
     }
@@ -410,12 +480,11 @@ class AuctionService {
         final currentBalance = winnerDoc.data()?['balance'] ?? 0.0;
         if (currentBalance < amount) throw 'Insufficient balance';
 
-        // Deduct from winner's balance
         transaction.update(winnerRef, {
           'balance': FieldValue.increment(-amount),
         });
 
-        // Create transaction record
+
         transaction.set(_firestore.collection('transactions').doc(), {
           'userId': winnerId,
           'amount': -amount,
@@ -509,7 +578,7 @@ class AuctionService {
     DocumentReference itemRef,
     Map<String, dynamic> item,
     String winnerId,
-    int winningAmount,
+    double winningAmount,
   ) {
     transaction.set(_firestore.collection('transactions').doc(), {
       'userId': winnerId,
@@ -530,5 +599,21 @@ class AuctionService {
       'timestamp': FieldValue.serverTimestamp(),
       'status': 'completed',
     });
+  }
+
+  static Future<void> sendNotification({
+    required String userId,
+    required String title,
+    required String message,
+    required String type,
+    required String itemId,
+  }) async {
+    return _sendNotification(
+      userId: userId,
+      title: title,
+      message: message,
+      type: type,
+      itemId: itemId,
+    );
   }
 }

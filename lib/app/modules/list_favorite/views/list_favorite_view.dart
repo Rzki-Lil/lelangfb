@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:lelang_fb/app/modules/home/controllers/home_controller.dart';
 import 'package:lelang_fb/core/constants/color.dart';
 import '../controllers/list_favorite_controller.dart';
 import '../../../widgets/header.dart';
+import 'package:lelang_fb/app/utils/live_auction_card.dart';
+import 'package:lelang_fb/app/utils/upcoming_auction_card.dart';
+import 'package:lelang_fb/app/services/auction_service.dart';
 
 class ListFavoriteView extends GetView<ListFavoriteController> {
   const ListFavoriteView({super.key});
@@ -25,15 +27,14 @@ class ListFavoriteView extends GetView<ListFavoriteController> {
           icon:
               Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.hijauTua),
           onPressed: () {
-            Get.back();
-            final homeController = Get.find<HomeController>();
-            homeController.selectedPage.value = 0;
-          },
+              Get.find<HomeController>().changePage(0);
+              Get.back();
+            }
         ),
       ),
       body: Column(
         children: [
-          // Instructions Card
+          // card intruksi
           Container(
             margin: EdgeInsets.fromLTRB(16, 10, 16, 0),
             padding: EdgeInsets.all(16),
@@ -104,8 +105,7 @@ class ListFavoriteView extends GetView<ListFavoriteController> {
               onChanged: (value) => controller.searchQuery.value = value,
             ),
           ),
-
-          // List of Favorites
+          // favorite items
           Expanded(
             child: Obx(() {
               if (controller.isLoading.value) {
@@ -119,18 +119,82 @@ class ListFavoriteView extends GetView<ListFavoriteController> {
                 );
               }
 
-              return ListView.builder(
+              return GridView.builder(
                 padding: EdgeInsets.symmetric(horizontal: 16),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.8,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final item = items[index];
-                  print('Item data: $item'); // Add this debug line
+                  final status =
+                      item['status']?.toString().toLowerCase() ?? 'upcoming';
+                  final itemDate = (item['tanggal'] as Timestamp).toDate();
+
+                  Widget card;
+                  if (status == 'live') {
+                    final jamSelesai = item['jamSelesai']?.toString() ?? '';
+                    final endTimeParts = jamSelesai.split(':');
+                    final endTime = DateTime(
+                      itemDate.year,
+                      itemDate.month,
+                      itemDate.day,
+                      int.parse(endTimeParts[0]),
+                      int.parse(endTimeParts[1]),
+                    );
+
+                    card = LiveAuctionCard(
+                      imageUrl: item['imageURL'] is List
+                          ? item['imageURL'][0]
+                          : item['imageURL'],
+                      name: item['name'] ?? 'Unnamed Item',
+                      price: (item['current_price'] ?? 0.0).toDouble(),
+                      location: item['lokasi'] ?? 'No location',
+                      rarity: item['rarity'] ?? 'Common',
+                      id: item['id'],
+                      endTime: endTime,
+                      bidCount: item['bid_count'] ?? 0,
+                      onTap: () => controller.navigateToDetail(item),
+                      onStatusChange: (itemId) {
+                        AuctionService.checkAndUpdateStatus(
+                          FirebaseFirestore.instance
+                              .collection('items')
+                              .doc(itemId),
+                        );
+                      },
+                    );
+                  } else {
+                    card = UpcomingAuctionCard(
+                      imageUrl: item['imageURL'] is List
+                          ? item['imageURL'][0]
+                          : item['imageURL'],
+                      name: item['name'] ?? 'Unnamed Item',
+                      price: (item['starting_price'] ?? 0.0).toDouble(),
+                      location: item['lokasi'] ?? 'No location',
+                      rarity: item['rarity'] ?? 'Common',
+                      date: itemDate,
+                      startTime: item['jamMulai'] ?? '',
+                      category: item['category'] ?? 'Others',
+                      onTap: () => controller.navigateToDetail(item),
+                      id: item['id'],
+                      onStatusChange: (itemId) {
+                        AuctionService.checkAndUpdateStatus(
+                          FirebaseFirestore.instance
+                              .collection('items')
+                              .doc(itemId),
+                        );
+                      },
+                    );
+                  }
 
                   return Slidable(
                     key: ValueKey(item['id']),
                     endActionPane: ActionPane(
                       motion: const ScrollMotion(),
-                      extentRatio: 0.25,
+                      extentRatio: 0.5,
                       children: [
                         CustomSlidableAction(
                           flex: 1,
@@ -150,173 +214,7 @@ class ListFavoriteView extends GetView<ListFavoriteController> {
                         ),
                       ],
                     ),
-                    child: Card(
-                      margin: EdgeInsets.symmetric(vertical: 8),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: InkWell(
-                        onTap: () => controller.navigateToDetail(item),
-                        child: Stack(
-                          children: [
-                            // Background gradient with time and date badges
-                            Positioned(
-                              top: 0,
-                              right: 0,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 35,
-                                  vertical: 20,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topRight,
-                                    end: Alignment.bottomLeft,
-                                    colors: [
-                                      AppColors.hijauTua.withOpacity(0.0),
-                                      Colors.transparent,
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.only(
-                                    topRight: Radius.circular(12),
-                                    bottomLeft: Radius.circular(24),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.calendar_today,
-                                          size: 12,
-                                          color: AppColors.hijauTua,
-                                        ),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          item['formattedDate'] ?? '',
-                                          style: TextStyle(
-                                            color: AppColors.hijauTua,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 4),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.access_time_filled,
-                                          size: 12,
-                                          color: AppColors.hijauTua,
-                                        ),
-                                        SizedBox(width: 4),
-                                        Text(
-                                          '${item['jamMulai'] ?? ''}',
-                                          style: TextStyle(
-                                            color: AppColors.hijauTua,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            // Main content
-                            Padding(
-                              padding: EdgeInsets.all(12),
-                              child: Row(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      item['imageURL'],
-                                      width: 80,
-                                      height: 80,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(
-                                        color: Colors.grey[200],
-                                        width: 80,
-                                        height: 80,
-                                        child: Icon(Icons.error_outline,
-                                            color: Colors.grey[400]),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item['name'] ?? 'No Name',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        Text(
-                                          'Rp ${NumberFormat.currency(
-                                            locale: 'id',
-                                            symbol: '',
-                                            decimalDigits: 0,
-                                          ).format(item['current_price'] ?? 0)}',
-                                          style: TextStyle(
-                                            color: AppColors.hijauTua,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.location_on_outlined,
-                                              size: 14,
-                                              color: Colors.grey[600],
-                                            ),
-                                            SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                item['displayLocation'] ??
-                                                    'No location',
-                                                style: TextStyle(
-                                                  color: Colors.grey[600],
-                                                  fontSize: 12,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 16,
-                                    color: Colors.grey[400],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    child: card,
                   );
                 },
               );
@@ -377,5 +275,72 @@ class ListFavoriteView extends GetView<ListFavoriteController> {
   String _formatDateTime(Timestamp date, String start, String end) {
     final dateTime = date.toDate();
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}\n$start - $end';
+  }
+
+  Widget _buildItemCard(Map<String, dynamic> item) {
+    final status = item['status']?.toString().toLowerCase() ?? 'upcoming';
+    final itemDate = (item['tanggal'] as Timestamp).toDate();
+    final jamMulai = item['jamMulai']?.toString() ?? '';
+    final jamSelesai = item['jamSelesai']?.toString() ?? '';
+
+    final startTimeParts = jamMulai.split(':');
+    final endTimeParts = jamSelesai.split(':');
+
+    if (startTimeParts.length != 2 || endTimeParts.length != 2) {
+      return SizedBox(); 
+    }
+
+    final endTime = DateTime(
+      itemDate.year,
+      itemDate.month,
+      itemDate.day,
+      int.parse(endTimeParts[0]),
+      int.parse(endTimeParts[1]),
+    );
+
+    if (status == 'live') {
+      return Container(
+        height: 160, 
+        child: LiveAuctionCard(
+          imageUrl:
+              item['imageURL'] is List ? item['imageURL'][0] : item['imageURL'],
+          name: item['name'] ?? 'Unnamed Item',
+          price: (item['current_price'] ?? 0.0).toDouble(),
+          location: item['lokasi'] ?? 'No location',
+          rarity: item['rarity'] ?? 'Common',
+          id: item['id'],
+          endTime: endTime,
+          bidCount: item['bid_count'] ?? 0,
+          onTap: () => controller.navigateToDetail(item),
+          onStatusChange: (itemId) {
+            AuctionService.checkAndUpdateStatus(
+              FirebaseFirestore.instance.collection('items').doc(itemId),
+            );
+          },
+        ),
+      );
+    } else {
+      return Container(
+        height: 180,
+        child: UpcomingAuctionCard(
+          imageUrl:
+              item['imageURL'] is List ? item['imageURL'][0] : item['imageURL'],
+          name: item['name'] ?? 'Unnamed Item',
+          price: (item['starting_price'] ?? 0.0).toDouble(),
+          location: item['lokasi'] ?? 'No location',
+          rarity: item['rarity'] ?? 'Common',
+          date: itemDate,
+          startTime: jamMulai,
+          category: item['category'] ?? 'Others',
+          onTap: () => controller.navigateToDetail(item),
+          id: item['id'],
+          onStatusChange: (itemId) {
+            AuctionService.checkAndUpdateStatus(
+              FirebaseFirestore.instance.collection('items').doc(itemId),
+            );
+          },
+        ),
+      );
+    }
   }
 }
